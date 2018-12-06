@@ -3,9 +3,24 @@ using System.Collections.Generic;
 using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Classification;
 using Microsoft.VisualStudio.Language.StandardClassification;
+using System.Linq;
 
 namespace Flex_Highlighter
 {
+    public struct MultiLineToken
+    {
+        public IClassificationType Classification;
+        public ITrackingSpan Tracking;
+        public ITextVersion Version;
+    }
+
+    public class Token
+    {
+        public int StartIndex;
+        public int Length;
+        public int TokenId;
+        public int State;
+    }
     /// <summary>
     /// Classifier that classifies all text as an instance of the "FlexerClassifier" classification type.
     /// </summary>
@@ -14,7 +29,10 @@ namespace Flex_Highlighter
         /// <summary>
         /// Classification type.
         /// </summary>
+        ///
+        internal List<MultiLineToken> _multiLineTokens;
         private readonly IClassificationType classificationType;
+        internal readonly IClassificationType Multiline;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="FlexClassifier"/> class.
@@ -25,10 +43,14 @@ namespace Flex_Highlighter
             ClassificationRegistry = registry;
             Classification = classification;
             Buffer = buffer;
+            Multiline = registry.CreateClassificationType("Multiline", new IClassificationType[0]);
+            _multiLineTokens = new List<MultiLineToken>();
+
 
             tokenizer = new FlexTokenizer(classification);
             this.classificationType = registry.GetClassificationType("FlexerClassifier");
         }
+
 
         private readonly FlexTokenizer tokenizer;
 
@@ -37,6 +59,13 @@ namespace Flex_Highlighter
         internal IStandardClassificationService Classification { get; }
 
         #region IClassifier
+        internal void Invalidate(SnapshotSpan span)
+        {
+            if (ClassificationChanged != null)
+            {
+                ClassificationChanged(this, new ClassificationChangedEventArgs(span));
+            }
+        }
 
 #pragma warning disable 67
 
@@ -61,9 +90,12 @@ namespace Flex_Highlighter
         /// </remarks>
         /// <param name="span">The span currently being classified.</param>
         /// <returns>A list of ClassificationSpans that represent spans identified to be of this classification.</returns>
+
         public IList<ClassificationSpan> GetClassificationSpans(SnapshotSpan span)
         {
             var list = new List<ClassificationSpan>();
+            bool isInsideMultiline = false;
+
             ITextSnapshot snapshot = span.Snapshot;
             string text = span.GetText();
             int length = span.Length;
@@ -71,13 +103,128 @@ namespace Flex_Highlighter
             int globalStart = span.Start.Position;
             int globalEnd = snapshot.Length;
 
-
-            while (index < length)
+            for (int i = _multiLineTokens.Count - 1; i >= 0; i--)
             {
-                int start = index;
-                index = tokenizer.AdvanceWord(text, start, out IClassificationType type, globalStart, globalEnd);
-                list.Add(new ClassificationSpan(new SnapshotSpan(snapshot, new Span(span.Start + start, index - start)), type));
+                var multiSpan = _multiLineTokens[i].Tracking.GetSpan(span.Snapshot);
+                if (multiSpan.Length == 0)
+                {
+                    _multiLineTokens.RemoveAt(i);
+                }
+                else
+                {
+                    if (span.IntersectsWith(multiSpan))
+                    {
+                        isInsideMultiline = true;
+                        if (span.Snapshot.Version != _multiLineTokens[i].Version)
+                        {
+                            _multiLineTokens.RemoveAt(i);
+                            Invalidate(multiSpan);
+                        }
+                        else
+                        {
+                            list.Add(new ClassificationSpan(multiSpan, _multiLineTokens[i].Classification));
+                        }
+                    }
+                }
             }
+
+            if (!isInsideMultiline)
+            {
+                int startPosition;
+                int endPosition;
+                int currentOffset = 0;
+                string currentText = span.GetText();
+
+                do
+                {
+                    startPosition = span.Start.Position + currentOffset;
+                    endPosition = startPosition;
+
+                    var token = tokenizer.Scan(currentText, currentOffset, currentText.Length, -1, 0);
+
+                    if (token != null)
+                    {
+                        endPosition = startPosition + token.Length;
+
+                        while (token != null && token.State != 0 && endPosition < span.Snapshot.Length)
+                        {
+                            int textSize = Math.Min(span.Snapshot.Length - endPosition, 1024);
+                            currentText = span.Snapshot.GetText(endPosition, textSize);
+                            token = tokenizer.Scan(currentText, 0, currentText.Length, token.TokenId, token.State);
+                            if (token != null)
+                            {
+                                endPosition += token.Length;
+                            }
+                        }
+                        bool multiLineToken = false;
+
+                        IClassificationType classification = null;
+
+                        switch (token.TokenId)
+                        {
+                            case 0:
+                                classification = Classification.WhiteSpace;
+                                break;
+                            case 1:
+                                classification = Classification.Keyword;
+                                break;
+                            case 2:
+                                classification = Classification.Comment;
+                                multiLineToken = true;
+                                break;
+                            case 3:
+                                classification = Classification.Comment;
+                                break;
+                            case 4:
+                                classification = Classification.NumberLiteral;
+                                break;
+                            case 5:
+                                classification = Classification.StringLiteral;
+                                break;
+                            case -1:
+                                classification = Classification.Other;
+                                break;
+                            default:
+                                break;
+                        }
+
+                        var tokenSpan = new SnapshotSpan(span.Snapshot, startPosition, (endPosition - startPosition));
+                        list.Add(new ClassificationSpan(tokenSpan, classification));
+
+                        if (multiLineToken)
+                        {
+                            if (!_multiLineTokens.Any( a => a.Tracking.GetSpan(span.Snapshot).Span == tokenSpan.Span))
+                            {
+                                _multiLineTokens.Add(new MultiLineToken()
+                                {
+                                    Classification = classification,
+                                    Version = span.Snapshot.Version,
+                                    Tracking = span.Snapshot.CreateTrackingSpan(tokenSpan.Span, SpanTrackingMode.EdgeExclusive)
+                                });
+
+                                if (tokenSpan.End > span.End)
+                                {
+                                    Invalidate(new SnapshotSpan(span.End + 1, tokenSpan.End));
+                                }
+                            }
+                        }
+                        currentOffset += token.Length;
+                    }
+                    if (token == null)
+                    {
+                        break;
+                    }
+                } while (currentOffset < currentText.Length);
+            }
+
+            //while (index < length)
+            //{
+            //    int start = index;
+            //    index = tokenizer.AdvanceWord(text, start, out IClassificationType type, globalStart, globalEnd);
+            //    list.Add(new ClassificationSpan(new SnapshotSpan(snapshot, new Span(span.Start + start, index - start)), type));
+            //}
+
+            //tokenizer.Tokenize(ref list, span);
             return list;
         }
 
