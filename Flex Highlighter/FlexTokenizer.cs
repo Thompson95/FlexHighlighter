@@ -6,6 +6,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Text.RegularExpressions;
+using Microsoft.VisualStudio.Text;
+using System.Diagnostics;
 
 namespace Flex_Highlighter
 {
@@ -40,6 +42,97 @@ namespace Flex_Highlighter
             };
         private List<CommentRanges> Comments = new List<CommentRanges>();
 
+        internal Token Scan( string text, int startIndex, int length, int startTokenId = -1, int startState = 0)
+        {
+            //public class Token
+            //{
+            //    public int StartIndex;
+            //    public int Length;
+            //    public int TokenId;
+            //    public int State;
+            //}
+
+            int index = startIndex;
+            Token token = new Token();
+            token.StartIndex = index;
+            token.TokenId = startTokenId;
+            token.State = startState;
+            token.Length = length - index;
+
+
+            if (index + 1 < length && text[index] == '/' && text[index + 1] == '/')
+            {
+                token.TokenId = 3;
+                return token;
+            }
+
+            if ((index + 1 < length && text[index] == '/' && text[index + 1] == '*') || token.State == 1)
+            {
+                if (index + 1 < length && text[index] == '/' && text[index + 1] == '*')
+                {
+                    index++;
+                    token.State = 1;
+                    token.TokenId = 2;
+                }
+
+                while (index < length)
+                {
+                    index = AdvanceWhile(text, ++index, chr => chr != '*');
+                    if (index + 1 < length && text[index + 1] == '/')
+                    {
+                        token.State = 0;
+                        token.Length = index + 2 - startIndex;
+                        return token;
+                    }
+                }
+                return token;
+            }
+
+            int start = index;
+            index = AdvanceWhile(text, index, chr => Char.IsWhiteSpace(chr));
+
+            if (index > start)
+            {
+                token.TokenId = 0;
+                token.Length = index - start;
+                return token;
+            }
+
+            if (text[index] == '\"')
+            {
+                index = AdvanceWhile(text, ++index, chr => chr != '\"');
+                token.TokenId = 5;
+                token.Length = ++index - start;
+                return token;
+            }
+
+            start = index;
+            if (Char.IsLetterOrDigit(text[index]))
+            {
+                index = AdvanceWhile(text, index, chr => Char.IsLetterOrDigit(chr));
+            }
+            else
+            {
+                index++;
+            }
+
+            string word = text.Substring(start, index - start);
+            if (IsDecimalInteger(word))
+            {
+                token.TokenId = 4;
+                token.Length = index - start;
+                return token;
+            }
+            else
+            {
+                token.TokenId = FlexKeywords.Contains(word) ? 1 : -1;
+                token.Length = index - start;
+            }
+
+
+            return token;
+        }
+
         internal int AdvanceWord(string text, int index, out IClassificationType classification, int globalStart, int globalEnd)
         {
             int length = text.Length;
@@ -54,7 +147,7 @@ namespace Flex_Highlighter
                 return length;
             }
 
-            if ((index + 1 < length && text[index] == '/' && text[index + 1] == '*'))
+            if ((index + 1 < length && text[index] == '/' && text[index + 1] == '*') || cases[Cases.Comment])
             {
                 if ((index + 1 < length && text[index] == '/' && text[index + 1] == '*'))
                 {
@@ -73,13 +166,14 @@ namespace Flex_Highlighter
                     index = AdvanceWhile(text, index, chr => chr != '*');
                     if(index + 1 < length && text[index+1] == '/')
                     {
+                        cases[Cases.Comment] = false;
                         index += 2;
                         Comments.Last().end = index + globalStart;
                         classification = Classifications.Comment;
                         return index;
                     }
                 }
-
+                cases[Cases.Comment] = true;
                 classification = Classifications.Comment;
                 return index;
             }

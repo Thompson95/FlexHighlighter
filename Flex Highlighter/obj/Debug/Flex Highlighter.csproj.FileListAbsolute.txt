@@ -56,3 +56,61 @@ E:\Programming\Flex Highlighter\Flex Highlighter\obj\Debug\Flex Highlighter.pdb
 E:\Programming\Flex Highlighter\Flex Highlighter\obj\Debug\extension.vsixmanifest
 E:\Programming\Flex Highlighter\Flex Highlighter\obj\Debug\files.json
 E:\Programming\Flex Highlighter\Flex Highlighter\obj\Debug\createTemplateManifests.cache
+E:\Programming\FlexHighlighter\Flex Highlighter\bin\Debug\Flex Highlighter.vsix
+E:\Programming\FlexHighlighter\Flex Highlighter\bin\Debug\extension.vsixmanifest
+E:\Programming\FlexHighlighter\Flex Highlighter\bin\Debug\Microsoft.VisualStudio.CoreUtility.dll
+E:\Programming\FlexHighlighter\Flex Highlighter\bin\Debug\Microsoft.VisualStudio.Editor.dll
+E:\Programming\FlexHighlighter\Flex Highlighter\bin\Debug\Microsoft.VisualStudio.Language.dll
+E:\Programming\FlexHighlighter\Flex Highlighter\bin\Debug\Microsoft.VisualStudio.Language.Intellisense.dll
+E:\Programming\FlexHighlighter\Flex Highlighter\bin\Debug\Microsoft.VisualStudio.Language.StandardClassification.dll
+E:\Programming\FlexHighlighter\Flex Highlighter\bin\Debug\Microsoft.VisualStudio.OLE.Interop.dll
+E:\Programming\FlexHighlighter\Flex Highlighter\bin\Debug\Microsoft.VisualStudio.Shell.15.0.dll
+E:\Programming\FlexHighlighter\Flex Highlighter\bin\Debug\Microsoft.VisualStudio.Shell.Framework.dll
+E:\Programming\FlexHighlighter\Flex Highlighter\bin\Debug\Microsoft.VisualStudio.Text.Data.dll
+E:\Programming\FlexHighlighter\Flex Highlighter\bin\Debug\Microsoft.VisualStudio.Text.Logic.dll
+E:\Programming\FlexHighlighter\Flex Highlighter\bin\Debug\Microsoft.VisualStudio.Text.UI.dll
+E:\Programming\FlexHighlighter\Flex Highlighter\bin\Debug\Microsoft.VisualStudio.Text.UI.Wpf.dll
+E:\Programming\FlexHighlighter\Flex Highlighter\bin\Debug\Microsoft.VisualStudio.TextManager.Interop.dll
+E:\Programming\FlexHighlighter\Flex Highlighter\bin\Debug\Microsoft.VisualStudio.TextManager.Interop.8.0.dll
+E:\Programming\FlexHighlighter\Flex Highlighter\bin\Debug\Microsoft.VisualStudio.Threading.dll
+E:\Programming\FlexHighlighter\Flex Highlighter\bin\Debug\StreamJsonRpc.dll
+E:\Programming\FlexHighlighter\Flex Highlighter\bin\Debug\Microsoft.VisualStudio.Validation.dll
+E:\Programming\FlexHighlighter\Flex Highlighter\bin\Debug\Microsoft.VisualStudio.Shell.Interop.dll
+E:\Programming\FlexHighlighter\Flex Highlighter\bin\Debug\Microsoft.VisualStudio.VSHelp.dll
+E:\Programming\FlexHighlighter\Flex Highlighter\bin\Debug\Microsoft.VisualStudio.Utilities.dll
+E:\Programming\FlexHighlighter\Flex Highlighter\bin\Debug\Microsoft.VisualStudio.Telemetry.dll
+E:\Programming\FlexHighlighter\Flex Highlighter\bin\Debug\Microsoft.VisualStudio.Imaging.dll
+E:\Programming\FlexHighlighter\Flex Highlighter\bin\Debug\Microsoft.VisualStudio.Shell.Interop.8.0.dll
+E:\Programming\FlexHighlighter\Flex Highlighter\bin\Debug\System.Threading.Tasks.Dataflow.dll
+E:\Programming\FlexHighlighter\Flex Highlighter\bin\Debug\Microsoft.VisualStudio.ComponentModelHost.dll
+E:\Programming\FlexHighlighter\Flex Highlighter\bin\Debug\Microsoft.VisualStudio.Shell.Interop.9.0.dll
+E:\Programming\FlexHighlighter\Flex Highlighter\bin\Debug\EnvDTE.dll
+E:\Programming\FlexHighlighter\Flex Highlighter\bin\Debug\Microsoft.VisualStudio.ProjectAggregator.dll
+E:\Programming\FlexHighlighter\Flex Highlighter\bin\Debug\Microsoft.VisualStudio.ImageCatalog.dll
+E:\Programming\FlexHighlighter\Flex Highlighter\bin\Debug\Microsoft.VisualStudio.GraphModel.dll
+E:\Programming\FlexHighlighter\Flex Highlighter\bin\Debug\Microsoft.MSXML.dll
+E:\Programming\FlexHighlighter\Flex Highlighter\bin\Debug\Microsoft.VisualStudio.RemoteControl.dll
+E:\Programming\FlexHighlighter\Flex Highlighter\bin\Debug\Microsoft.VisualStudio.Utilities.Internal.dll
+E:\Programming\FlexHighlighter\Flex Highlighter\bin\Debug\Microsoft.Diagnostics.Tracing.EventSource.dll
+E:\Programming\FlexHighlighter\Flex Highlighter\bin\Debug\stdole.dll
+E:\Programming\FlexHighlighter\Flex Highlighter\bin\Debug\Microsoft.VisualStudio.CoreUtility.xml
+E:\Programming\FlexHighlighter\Flex Highlighter\bin\Debug\Microsoft.VisualStudio.Editor.xml
+E:\Programming\FlexHighlighter\Flex Highlighter\bin\Debug\Microsoft.VisualStudio.Language.Intellisense.xml
+E:\Programming\FlexHighlighter\Flex Highlighter\bin\Debug\Microsoft.VisualStudio.Language.StandardClassification.xml
+E:\Programming\FlexHighlighter\Flex Highlighter\bin\Debug\Microsoft.VisualStudio.Text.Data.xml
+E:\Programming\FlexHighlighter\Flex Highlighter\bin\Debug\Microsoft.VisualStudio.Text.Logic.xml
+E:\Programming\FlexHighlighter\Flex Highlighter\bin\Debug\Microsoft.VisualStudio.Text.UI.xml
+E:\Programming\FlexHighlighter\Flex Highlighter\bin\Debug\Microsoft.VisualStudio.Text.UI.Wpf.xml
+E:\Programming\FlexHighlighter\Flex Highlighter\bin\Debug\Microsoft.VisualStudio.Threading.xml
+E:\Programming\FlexHighlighter\Flex Highlighter\bin\Debug\Microsoft.VisualStudio.Validation.xml
+E:\Programming\FlexHighlighter\Flex Highlighter\bin\Debug\Microsoft.VisualStudio.Utilities.xml
+E:\Programming\FlexHighlighter\Flex Highlighter\bin\Debug\Microsoft.VisualStudio.Imaging.xml
+E:\Programming\FlexHighlighter\Flex Highlighter\bin\Debug\Microsoft.VisualStudio.ImageCatalog.xml
+E:\Programming\FlexHighlighter\Flex Highlighter\obj\Debug\Flex Highlighter.csprojAssemblyReference.cache
+E:\Programming\FlexHighlighter\Flex Highlighter\obj\Debug\Flex Highlighter.csproj.CoreCompileInputs.cache
+E:\Programming\FlexHighlighter\Flex Highlighter\obj\Debug\Flex Highlighter.csproj.CopyComplete
+E:\Programming\FlexHighlighter\Flex Highlighter\obj\Debug\Flex Highlighter.dll
+E:\Programming\FlexHighlighter\Flex Highlighter\obj\Debug\Flex Highlighter.pdb
+E:\Programming\FlexHighlighter\Flex Highlighter\obj\Debug\extension.vsixmanifest
+E:\Programming\FlexHighlighter\Flex Highlighter\obj\Debug\files.json
+E:\Programming\FlexHighlighter\Flex Highlighter\obj\Debug\createTemplateManifests.cache
