@@ -48,6 +48,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Flex.cs" />
+    <Compile Include="FlexClassificationChangedEventArgs.cs" />
     <Compile Include="FlexClassifier.cs" />
     <Compile Include="FlexClassifierClassificationDefinition.cs" />
     <Compile Include="FlexClassifierFormat.cs" />

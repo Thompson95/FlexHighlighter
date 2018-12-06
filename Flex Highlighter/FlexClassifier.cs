@@ -7,11 +7,18 @@ using System.Linq;
 
 namespace Flex_Highlighter
 {
-    public struct MultiLineToken
+    internal enum Languages
+    {
+        Undefined,
+        C,
+        Flex
+    }
+    internal struct MultiLineToken
     {
         public IClassificationType Classification;
         public ITrackingSpan Tracking;
         public ITextVersion Version;
+        public Languages Language;
     }
 
     public class Token
@@ -99,9 +106,7 @@ namespace Flex_Highlighter
             ITextSnapshot snapshot = span.Snapshot;
             string text = span.GetText();
             int length = span.Length;
-            int index = 0;
-            int globalStart = span.Start.Position;
-            int globalEnd = snapshot.Length;
+            Languages language = Languages.Undefined;
 
             for (int i = _multiLineTokens.Count - 1; i >= 0; i--)
             {
@@ -117,12 +122,17 @@ namespace Flex_Highlighter
                         isInsideMultiline = true;
                         if (span.Snapshot.Version != _multiLineTokens[i].Version)
                         {
+                            language = _multiLineTokens[i].Language;
                             _multiLineTokens.RemoveAt(i);
                             Invalidate(multiSpan);
                         }
                         else
                         {
-                            list.Add(new ClassificationSpan(multiSpan, _multiLineTokens[i].Classification));
+                            if (_multiLineTokens[i].Classification != null)
+                            {
+                                list.Add(new ClassificationSpan(multiSpan, _multiLineTokens[i].Classification));
+                            }
+
                         }
                     }
                 }
@@ -140,7 +150,7 @@ namespace Flex_Highlighter
                     startPosition = span.Start.Position + currentOffset;
                     endPosition = startPosition;
 
-                    var token = tokenizer.Scan(currentText, currentOffset, currentText.Length, -1, 0);
+                    var token = tokenizer.Scan(currentText, currentOffset, currentText.Length, language, -1, 0);
 
                     if (token != null)
                     {
@@ -150,7 +160,7 @@ namespace Flex_Highlighter
                         {
                             int textSize = Math.Min(span.Snapshot.Length - endPosition, 1024);
                             currentText = span.Snapshot.GetText(endPosition, textSize);
-                            token = tokenizer.Scan(currentText, 0, currentText.Length, token.TokenId, token.State);
+                            token = tokenizer.Scan(currentText, 0, currentText.Length, language, token.TokenId, token.State);
                             if (token != null)
                             {
                                 endPosition += token.Length;
@@ -188,11 +198,16 @@ namespace Flex_Highlighter
                                 classification = Classification.Other;
                                 break;
                             default:
+                                multiLineToken = true;
                                 break;
                         }
 
                         var tokenSpan = new SnapshotSpan(span.Snapshot, startPosition, (endPosition - startPosition));
-                        list.Add(new ClassificationSpan(tokenSpan, classification));
+                        if (token.TokenId != FlexTokenizer.Classes.C && token.TokenId != FlexTokenizer.Classes.Flex)
+                        {
+                            list.Add(new ClassificationSpan(tokenSpan, classification));
+                        }
+
 
                         if (multiLineToken)
                         {
@@ -202,10 +217,15 @@ namespace Flex_Highlighter
                                 {
                                     Classification = classification,
                                     Version = span.Snapshot.Version,
-                                    Tracking = span.Snapshot.CreateTrackingSpan(tokenSpan.Span, SpanTrackingMode.EdgeExclusive)
+                                    Tracking = span.Snapshot.CreateTrackingSpan(tokenSpan.Span, SpanTrackingMode.EdgeExclusive),
+                                    Language = token.TokenId ==   FlexTokenizer.Classes.C ? Languages.C : 
+                                                                (token.TokenId == FlexTokenizer.Classes.Flex ? Languages.Flex : Languages.Undefined)
                                 });
-
-                                if (tokenSpan.End > span.End)
+                                if (token.TokenId == FlexTokenizer.Classes.C || token.TokenId == FlexTokenizer.Classes.Flex)
+                                {
+                                    //Invalidate(new SnapshotSpan(span.Start + 2, span.End));
+                                }
+                                else if (tokenSpan.End > span.End)
                                 {
                                     Invalidate(new SnapshotSpan(span.End + 1, tokenSpan.End));
                                 }

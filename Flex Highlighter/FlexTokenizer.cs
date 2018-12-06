@@ -31,7 +31,9 @@ namespace Flex_Highlighter
             MultiLineComment = 2,
             Option = 3,
             Include = 4,
-            String = 5
+            String = 5,
+            C = 6,
+            Flex = 7
         }
         internal static class Classes
         {
@@ -43,6 +45,8 @@ namespace Flex_Highlighter
             internal readonly static short StringLiteral = 5;
             internal readonly static short ExcludedCode = 6;
             internal readonly static short Other = -1;
+            internal readonly static short C = -2;
+            internal readonly static short Flex = -3;
         }
         internal FlexTokenizer(IStandardClassificationService classifications) => Classifications = classifications;
         internal IStandardClassificationService Classifications { get; }
@@ -55,7 +59,7 @@ namespace Flex_Highlighter
             };
         private List<CommentRanges> Comments = new List<CommentRanges>();
 
-        internal Token Scan( string text, int startIndex, int length, int startTokenId = -1, int startState = 0)
+        internal Token Scan( string text, int startIndex, int length, Languages language, int startTokenId = -1, int startState = 0)
         {
             //public class Token
             //{
@@ -110,6 +114,46 @@ namespace Flex_Highlighter
             {
                 token.TokenId = Classes.WhiteSpace;
                 token.Length = index - start;
+                return token;
+            }
+
+            if ((index + 1 < length && text[index] == '%' && text[index + 1] == '{') || token.State == (int)Cases.C)
+            {
+                if ((index + 1 < length && text[index] == '%' && text[index + 1] == '{'))
+                {
+                    index += 2;
+                    token.State = (int)Cases.C;
+                    token.TokenId = Classes.Keyword;
+                }
+
+                while (index < length)
+                {
+                    index = AdvanceWhile(text, index, chr => chr != '%');
+                    if (index + 1 < length && text[index + 1] == '}')
+                    {
+                        index += 2;
+                        token.StartIndex = start;
+                        token.State = (int)Cases.NoCase;
+                        token.TokenId = Classes.C;
+                        token.Length = index - start;
+                        return token;
+                    }
+                }
+
+                return token;
+            }
+
+            if (text[index] == '#' && language == Languages.C)
+            {
+                token.TokenId = Classes.StringLiteral;
+                token.Length = 1;
+                return token;
+            }
+
+            if (text[index] == '#')
+            {
+                token.TokenId = Classes.NumberLiteral;
+                token.Length = 1;
                 return token;
             }
 
