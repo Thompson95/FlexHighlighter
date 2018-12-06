@@ -26,10 +26,23 @@ namespace Flex_Highlighter
     {
         internal enum Cases
         {
-            Comment,
-            Option,
-            Include,
-            String
+            NoCase = 0,
+            Comment = 1,
+            MultiLineComment = 2,
+            Option = 3,
+            Include = 4,
+            String = 5
+        }
+        internal static class Classes
+        {
+            internal readonly static short WhiteSpace = 0;
+            internal readonly static short Keyword = 1;
+            internal readonly static short MultiLineComment = 2;
+            internal readonly static short Comment = 3;
+            internal readonly static short NumberLiteral = 4;
+            internal readonly static short StringLiteral = 5;
+            internal readonly static short ExcludedCode = 6;
+            internal readonly static short Other = -1;
         }
         internal FlexTokenizer(IStandardClassificationService classifications) => Classifications = classifications;
         internal IStandardClassificationService Classifications { get; }
@@ -62,17 +75,17 @@ namespace Flex_Highlighter
 
             if (index + 1 < length && text[index] == '/' && text[index + 1] == '/')
             {
-                token.TokenId = 3;
+                token.TokenId = Classes.Comment;
                 return token;
             }
 
-            if ((index + 1 < length && text[index] == '/' && text[index + 1] == '*') || token.State == 1)
+            if ((index + 1 < length && text[index] == '/' && text[index + 1] == '*') || token.State == (int)Cases.MultiLineComment)
             {
                 if (index + 1 < length && text[index] == '/' && text[index + 1] == '*')
                 {
                     index++;
-                    token.State = 1;
-                    token.TokenId = 2;
+                    token.State = (int)Cases.MultiLineComment;
+                    token.TokenId = Classes.MultiLineComment;
                 }
 
                 while (index < length)
@@ -80,7 +93,7 @@ namespace Flex_Highlighter
                     index = AdvanceWhile(text, ++index, chr => chr != '*');
                     if (index + 1 < length && text[index + 1] == '/')
                     {
-                        token.State = 0;
+                        token.State = (int)Cases.NoCase;
                         token.Length = index + 2 - startIndex;
                         return token;
                     }
@@ -88,20 +101,41 @@ namespace Flex_Highlighter
                 return token;
             }
 
+
+
             int start = index;
             index = AdvanceWhile(text, index, chr => Char.IsWhiteSpace(chr));
 
             if (index > start)
             {
-                token.TokenId = 0;
+                token.TokenId = Classes.WhiteSpace;
                 token.Length = index - start;
                 return token;
             }
 
+            string aux = new String(text.ToCharArray(), index, length - index);
+            var matches = new Regex(@"^(%%)\s+", RegexOptions.Compiled | RegexOptions.IgnoreCase).Matches(aux, 0);
+            if (matches.Count > 0)
+            {
+                token.StartIndex = matches[0].Index;
+                token.Length = matches[0].Length;
+                token.TokenId = Classes.ExcludedCode;
+                return token;
+            }
+
+            //if(index + 1 < length && text[index] == '%' && text[index + 1] == '%')
+            //{
+            //    index += 2;
+            //    if(index - 3 >= 0 && Char.IsWhiteSpace(text[index-3]) && (Char.IsWhiteSpace(text[index]) || text[index] == '/'))
+            //    {
+
+            //    }
+            //}
+
             if (text[index] == '\"')
             {
                 index = AdvanceWhile(text, ++index, chr => chr != '\"');
-                token.TokenId = 5;
+                token.TokenId = Classes.StringLiteral;
                 token.Length = ++index - start;
                 return token;
             }
@@ -119,13 +153,13 @@ namespace Flex_Highlighter
             string word = text.Substring(start, index - start);
             if (IsDecimalInteger(word))
             {
-                token.TokenId = 4;
+                token.TokenId = Classes.NumberLiteral;
                 token.Length = index - start;
                 return token;
             }
             else
             {
-                token.TokenId = FlexKeywords.Contains(word) ? 1 : -1;
+                token.TokenId = FlexKeywords.Contains(word) ? Classes.Keyword : Classes.Other;
                 token.Length = index - start;
             }
 

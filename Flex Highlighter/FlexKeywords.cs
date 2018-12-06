@@ -11,7 +11,7 @@ namespace Flex_Highlighter
     {
         private static readonly List<string> keywords = new List<string>
         {
-            "%%", "%{", "}%", "int", "double", "float", "string", "void", "return", "switch", "if", "else", "while", "true", "false"
+            "%%", "%{", "}%", "int", "double", "float", "string", "void", "return", "switch", "if", "else", "while", "true", "false", "include"
         };
 
         private static readonly HashSet<string> keywordSet = new HashSet<string>(keywords, StringComparer.OrdinalIgnoreCase);

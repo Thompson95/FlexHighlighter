@@ -128,7 +128,7 @@ namespace Flex_Highlighter
                 }
             }
 
-            if (!isInsideMultiline)
+            //if (!isInsideMultiline)
             {
                 int startPosition;
                 int endPosition;
@@ -180,6 +180,9 @@ namespace Flex_Highlighter
                                 break;
                             case 5:
                                 classification = Classification.StringLiteral;
+                                break;
+                            case 6:
+                                classification = Classification.ExcludedCode;
                                 break;
                             case -1:
                                 classification = Classification.Other;
