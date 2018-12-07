@@ -44,6 +44,7 @@ namespace Flex_Highlighter
             internal readonly static short NumberLiteral = 4;
             internal readonly static short StringLiteral = 5;
             internal readonly static short ExcludedCode = 6;
+            internal readonly static short Identifier = 7;
             internal readonly static short Other = -1;
             internal readonly static short C = -2;
             internal readonly static short Flex = -3;
@@ -117,18 +118,18 @@ namespace Flex_Highlighter
                 return token;
             }
 
-            if ((index + 1 < length && text[index] == '%' && text[index + 1] == '{') || token.State == (int)Cases.C)
+            if (((index + 1 < length && text[index] == '%' && text[index + 1] == '{') || token.State == (int)Cases.C) && language == Languages.Undefined)
             {
                 if ((index + 1 < length && text[index] == '%' && text[index + 1] == '{'))
                 {
                     index += 2;
                     token.State = (int)Cases.C;
-                    token.TokenId = Classes.Keyword;
+                    token.TokenId = Classes.C;
                 }
 
                 while (index < length)
                 {
-                    index = AdvanceWhile(text, index, chr => chr != '%');
+                    index = AdvanceWhile(text, ++index, chr => chr != '%');
                     if (index + 1 < length && text[index + 1] == '}')
                     {
                         index += 2;
@@ -138,14 +139,98 @@ namespace Flex_Highlighter
                         token.Length = index - start;
                         return token;
                     }
+                    if (index >= length)
+                    {
+                        index += 2;
+                        token.StartIndex = start;
+                        token.TokenId = Classes.C;
+                        return token;
+                    }
                 }
 
                 return token;
             }
 
-            if (text[index] == '#' && language == Languages.C)
+            if (((index + 1 < length && text[index] == '%' && text[index + 1] == '}') || token.State == (int)Cases.Flex) && language != Languages.Flex)
             {
-                token.TokenId = Classes.StringLiteral;
+               if ((index + 1 < length && text[index] == '%' && text[index + 1] == '}'))
+                {
+                    index += 2;
+                    token.State = (int)Cases.Flex;
+                    token.TokenId = Classes.Flex;
+                    start += 2;
+                }
+
+                while (index < length)
+                {
+                    index = AdvanceWhile(text, index, chr => chr != '%');
+                    if (index + 1 < length && text[index + 1] == '%')
+                    {
+                        index += 2;
+                        while (index < length)
+                        {
+                            index = AdvanceWhile(text, index, chr => chr != '%');
+                            if (index + 1 < length && text[index + 1] == '%')
+                            {
+                                token.StartIndex = start;
+                                token.State = (int)Cases.NoCase;
+                                token.TokenId = Classes.Flex;
+                                token.Length = index - token.StartIndex;
+                                return token;
+                            }
+                            index++;
+                        }
+                        return token;
+                    }
+                    if (index >= length)
+                    {
+                        token.StartIndex = start;
+                        token.TokenId = Classes.Flex;
+                        token.Length = index - token.StartIndex;
+                        return token;
+                    }
+                    index++;
+                }
+
+                return token;
+            }
+
+            if (language == Languages.C)
+            {
+                string[] test = { "#include", "#" };
+                foreach (var s in test)
+                {
+                    int i = text.IndexOf(s);
+                    if (i == index)
+                    {
+                        token.StartIndex = index;
+                        token.Length = s.Length;
+                        switch (s)
+                        {
+                            case "#include":
+                                token.TokenId = Classes.ExcludedCode;
+                                return token;
+                            case "#":
+                                token.TokenId = Classes.StringLiteral;
+                                return token;
+                            default:
+                                break;
+                        }
+
+                    }
+                }
+            }
+
+            //if (text[index] == '#' && language == Languages.C)
+            //{
+            //    token.TokenId = Classes.StringLiteral;
+            //    token.Length = 1;
+            //    return token;
+            //}
+
+            if (text[index] == '#' && language == Languages.Flex)
+            {
+                token.TokenId = Classes.ExcludedCode;
                 token.Length = 1;
                 return token;
             }
@@ -162,7 +247,7 @@ namespace Flex_Highlighter
             if (matches.Count > 0)
             {
                 token.StartIndex = matches[0].Index;
-                token.Length = matches[0].Length;
+                token.Length = matches[0].Length-token.StartIndex;
                 token.TokenId = Classes.ExcludedCode;
                 return token;
             }

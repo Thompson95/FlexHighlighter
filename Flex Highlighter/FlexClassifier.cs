@@ -120,11 +120,21 @@ namespace Flex_Highlighter
                 {
                     if (span.IntersectsWith(multiSpan))
                     {
-                        Debug.WriteLine($"{text}\n{multiSpan.GetText()}\n{_multiLineTokens[i].Language.ToString()}\n{length}\n{_multiLineTokens[i].Classification}\n===========================================");
+                        if (span.End == multiSpan.Start)
+                        {
+                            continue;
+                        }
                         isInsideMultiline = true;
-                        language = _multiLineTokens[i].Language;
+                        if (span.Start >= multiSpan.Start) //&& span.End < multiSpan.End)
+                        {
+                            language = _multiLineTokens[i].Language;
+                        }
                         if (span.Snapshot.Version != _multiLineTokens[i].Version)
                         {
+                            if (_multiLineTokens[i].Classification != null)
+                            {
+                                list.Add(new ClassificationSpan(multiSpan, _multiLineTokens[i].Classification));
+                            }
                             _multiLineTokens.RemoveAt(i);
                             Invalidate(multiSpan);
                         }
@@ -140,7 +150,7 @@ namespace Flex_Highlighter
                 }
             }
 
-            //if (!isInsideMultiline)
+            if (!isInsideMultiline || language != Languages.Undefined)
             {
                 int startPosition;
                 int endPosition;
@@ -156,12 +166,19 @@ namespace Flex_Highlighter
 
                     if (token != null)
                     {
+                        if (token.State == (int)FlexTokenizer.Cases.Flex)
+                            startPosition += 2;
                         endPosition = startPosition + token.Length;
 
                         while (token != null && token.State != 0 && endPosition < span.Snapshot.Length)
                         {
                             int textSize = Math.Min(span.Snapshot.Length - endPosition, 1024);
                             currentText = span.Snapshot.GetText(endPosition, textSize);
+                            if(textSize == 0)
+                            {
+                                token.State = 0;
+                                break;
+                            }
                             token = tokenizer.Scan(currentText, 0, currentText.Length, language, token.TokenId, token.State);
                             if (token != null)
                             {
@@ -196,6 +213,9 @@ namespace Flex_Highlighter
                             case 6:
                                 classification = Classification.ExcludedCode;
                                 break;
+                            case 7:
+                                classification = Classification.Identifier;
+                                break;
                             case -1:
                                 classification = Classification.Other;
                                 break;
@@ -225,11 +245,14 @@ namespace Flex_Highlighter
                                 });
                                 if (token.TokenId == FlexTokenizer.Classes.C || token.TokenId == FlexTokenizer.Classes.Flex)
                                 {
-                                    Invalidate(new SnapshotSpan(tokenSpan.Start + 2, tokenSpan.End));
+                                    Invalidate(new SnapshotSpan(tokenSpan.Start, tokenSpan.End));
+                                    //list = GetClassificationSpans(tokenSpan).ToList();
+                                    return list;
                                 }
                                 else if (tokenSpan.End > span.End)
                                 {
                                     Invalidate(new SnapshotSpan(span.End + 1, tokenSpan.End));
+                                    return list;
                                 }
                             }
                         }
