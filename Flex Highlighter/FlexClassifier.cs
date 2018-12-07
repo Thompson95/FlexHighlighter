@@ -4,6 +4,7 @@ using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Classification;
 using Microsoft.VisualStudio.Language.StandardClassification;
 using System.Linq;
+using System.Diagnostics;
 
 namespace Flex_Highlighter
 {
@@ -119,10 +120,11 @@ namespace Flex_Highlighter
                 {
                     if (span.IntersectsWith(multiSpan))
                     {
+                        Debug.WriteLine($"{text}\n{multiSpan.GetText()}\n{_multiLineTokens[i].Language.ToString()}\n{length}\n{_multiLineTokens[i].Classification}\n===========================================");
                         isInsideMultiline = true;
+                        language = _multiLineTokens[i].Language;
                         if (span.Snapshot.Version != _multiLineTokens[i].Version)
                         {
-                            language = _multiLineTokens[i].Language;
                             _multiLineTokens.RemoveAt(i);
                             Invalidate(multiSpan);
                         }
@@ -223,7 +225,7 @@ namespace Flex_Highlighter
                                 });
                                 if (token.TokenId == FlexTokenizer.Classes.C || token.TokenId == FlexTokenizer.Classes.Flex)
                                 {
-                                    //Invalidate(new SnapshotSpan(span.Start + 2, span.End));
+                                    Invalidate(new SnapshotSpan(tokenSpan.Start + 2, tokenSpan.End));
                                 }
                                 else if (tokenSpan.End > span.End)
                                 {
