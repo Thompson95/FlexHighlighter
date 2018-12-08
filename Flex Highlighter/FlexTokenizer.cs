@@ -34,12 +34,15 @@ namespace Flex_Highlighter
             internal readonly static short NumberLiteral = 4;
             internal readonly static short StringLiteral = 5;
             internal readonly static short ExcludedCode = 6;
-            internal readonly static short C = -2;
+            internal readonly static short FlexDefinition = 7;
             internal readonly static short Other = -1;
+            internal readonly static short C = -2;
+            internal readonly static short FlexDefinitions = -3;
         }
         internal FlexTokenizer(IStandardClassificationService classifications) => Classifications = classifications;
         internal IStandardClassificationService Classifications { get; }
         private List<CommentRanges> Comments = new List<CommentRanges>();
+        private List<string> Definitions = new List<string>();
 
         internal Token Scan( string text, int startIndex, int length, Languages language, ref Cases ecase, int startTokenId = -1, int startState = 0)
         {
@@ -110,6 +113,7 @@ namespace Flex_Highlighter
                         token.Length = index - start;
                         return token;
                     }
+                    index++;
                     if (index >= length)
                     {
                         index += 2;
@@ -117,9 +121,38 @@ namespace Flex_Highlighter
                         token.TokenId = Classes.C;
                         return token;
                     }
-                    index++;
                 }
             }
+
+            if (((index + 1 < length && text[index] == '%' && text[index + 1] == '}') || token.State == (int)Cases.FlexDefinitions) && language == Languages.C)
+            {
+                if ((index + 1 < length && text[index] == '%' && text[index + 1] == '}'))
+                {
+                    index += 2;
+                    token.State = (int)Cases.FlexDefinitions;
+                }
+
+                while (index < length)
+                {
+                    index = AdvanceWhile(text, index, chr => chr != '%');
+                    if (index + 1 < length && text[index + 1] == '%' && (index - 1 > 0 && text[index - 1] == '\n'))
+                    {
+                        index += 2;
+                        token.StartIndex = start;
+                        token.State = (int)Cases.NoCase;
+                        token.TokenId = Classes.FlexDefinitions;
+                        token.Length = index - start;
+                        return token;
+                    }
+                    index++;
+                    if (index >= length)
+                    {
+                        token.StartIndex = start;
+                        return token;
+                    }
+                }
+            }
+
             index = start;
             if ((text[index] == '\t' || token.State == (int)Cases.CIndent) && language == Languages.Flex)
             {
@@ -163,9 +196,6 @@ namespace Flex_Highlighter
                     }
                     if (index >= length)
                     {
-                        index += 2;
-                        token.StartIndex = index;
-                        token.TokenId = Classes.C;
                         return token;
                     }
                     index++;
@@ -180,6 +210,28 @@ namespace Flex_Highlighter
                 token.TokenId = Classes.WhiteSpace;
                 token.Length = index - start;
                 return token;
+            }
+
+            if (language == Languages.FlexDefinitions)
+            {
+                if(start == 0)
+                {
+                    index = start;
+                    if (text[index] == '_' || Char.IsLetter(text[index]))
+                    {
+                        index++;
+                        index = AdvanceWhileDefinition(text, index);
+                        if (Char.IsWhiteSpace(text[index]))
+                        {
+                            Definitions.Add(new string(text.ToCharArray(), start, index));
+                            token.Length = index - start;
+                            token.TokenId = Classes.FlexDefinition;
+                            return token;
+                        }
+                    }
+                    
+                }
+                start = index;
             }
 
             if(language == Languages.C)
@@ -201,7 +253,7 @@ namespace Flex_Highlighter
                     return token;
                 }
 
-                string[] test = { "#include" };
+                string[] test = { "#include", "#define" };
                 foreach (var s in test)
                 {
                     int i = text.IndexOf(s);
@@ -211,7 +263,12 @@ namespace Flex_Highlighter
                         {
                             case "#include":
                                 token.Length = s.Length;
-                                token.TokenId = Classes.Keyword;
+                                token.TokenId = Classes.ExcludedCode;
+                                ecase = Cases.Include;
+                                return token;
+                            case "#define":
+                                token.Length = s.Length;
+                                token.TokenId = Classes.ExcludedCode;
                                 ecase = Cases.Include;
                                 return token;
                             default:
@@ -228,12 +285,34 @@ namespace Flex_Highlighter
                     token.TokenId = Classes.NumberLiteral;
                     return token;
                 }
+                string[] test = { "%option" };
+                foreach (var s in test)
+                {
+                    int i = text.IndexOf(s);
+                    if (i == index)
+                    {
+                        switch (s)
+                        {
+                            case "%option":
+                                token.Length = s.Length;
+                                token.TokenId = Classes.ExcludedCode;
+                                ecase = Cases.Include;
+                                return token;
+                            default:
+                                break;
+                        }
+                    }
+                }
             }
 
             start = index;
-            if (Char.IsLetterOrDigit(text[index]))
+            if (Char.IsDigit(text[index]))
             {
-                index = AdvanceWhile(text, index, chr => Char.IsLetterOrDigit(chr));
+                index = AdvanceWhile(text, index, chr => Char.IsDigit(chr));
+            }
+            else if(Char.IsLetter(text[index]))
+            {
+                index = AdvanceWhile(text, index, chr => Char.IsLetter(chr));
             }
             else
             {
@@ -277,6 +356,18 @@ namespace Flex_Highlighter
         {
             for (int length = text.Length; index < length && predicate(text[index]); index++) ;
                 return index;
+        }
+
+        private int AdvanceWhileDefinition(string text, int index)
+        {
+            for (int length = text.Length; index < length; index++)
+            {
+                if (!(Char.IsLetterOrDigit(text[index]) || text[index] == '_'))
+                {
+                    break;
+                }
+            }
+            return index;
         }
     }
 }

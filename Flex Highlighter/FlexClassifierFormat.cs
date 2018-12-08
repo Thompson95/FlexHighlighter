@@ -10,8 +10,8 @@ namespace Flex_Highlighter
     /// and is underlined.
     /// </summary>
     [Export(typeof(EditorFormatDefinition))]
-    [ClassificationType(ClassificationTypeNames = "MultilineComment")]
-    [Name("MultilineComment")]
+    [ClassificationType(ClassificationTypeNames = "Flex Definition")]
+    [Name("Flex Definition")]
     [UserVisible(true)] // This should be visible to the end user
     [Order(After = Priority.Default, Before = Priority.High)] // Set the priority to be after the default classifiers
     internal sealed class FlexClassifierFormat : ClassificationFormatDefinition
@@ -21,12 +21,8 @@ namespace Flex_Highlighter
         /// </summary>
         public FlexClassifierFormat()
         {
-            this.DisplayName = "MultilineComment"; // Human readable version of the name
-            this.ForegroundColor = Color.FromRgb(87, 166, 74);
-            this.BackgroundColor = Colors.BlueViolet;
-            this.TextDecorations = System.Windows.TextDecorations.Underline;
+            this.DisplayName = "Flex Definition"; // Human readable version of the name
+            this.ForegroundColor = Color.FromRgb(189, 99, 197);
         }
-        [Import]
-        internal IEditorFormatMapService FormatMapService { get; set; }
     }
 }
