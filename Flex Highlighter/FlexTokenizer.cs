@@ -126,7 +126,7 @@ namespace Flex_Highlighter
 
             if (((index + 1 < length && text[index] == '%' && text[index + 1] == '}') || token.State == (int)Cases.FlexDefinitions) && language == Languages.C)
             {
-                if ((index + 1 < length && text[index] == '%' && text[index + 1] == '}'))
+                //if ((index + 1 < length && text[index] == '%' && text[index + 1] == '}'))
                 {
                     index += 2;
                     token.State = (int)Cases.FlexDefinitions;
