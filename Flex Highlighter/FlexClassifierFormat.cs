@@ -61,4 +61,22 @@ namespace Flex_Highlighter
             this.BackgroundColor = Colors.LightGreen;
         }
     }
+
+    [Export(typeof(EditorFormatDefinition))]
+    [ClassificationType(ClassificationTypeNames = "FlexDefinitionSection")]
+    [Name("FlexDefinitionSection")]
+    [UserVisible(true)] // This should be visible to the end user
+    [Order(After = Priority.High, Before = Priority.High)] // Set the priority to be after the default classifiers
+    internal sealed class FlexDefinitionSectionFormat : ClassificationFormatDefinition
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="FlexClassifierFormat"/> class.
+        /// </summary>
+        public FlexDefinitionSectionFormat()
+        {
+            this.DisplayName = "FlexDefinitionSection"; // Human readable version of the name
+            this.ForegroundColor = Colors.Black;
+            this.BackgroundColor = Colors.White;
+        }
+    }
 }

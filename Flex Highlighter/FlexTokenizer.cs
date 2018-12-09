@@ -38,6 +38,8 @@ namespace Flex_Highlighter
             internal readonly static short Other = -1;
             internal readonly static short C = -2;
             internal readonly static short FlexDefinitions = -3;
+            internal readonly static short CIndent = -4;
+            internal readonly static short FlexRules = -5;
         }
         internal FlexTokenizer(IStandardClassificationService classifications) => Classifications = classifications;
         internal IStandardClassificationService Classifications { get; }
@@ -92,7 +94,7 @@ namespace Flex_Highlighter
 
             
             int start = index;
-            if (((index + 1 < length && text[index] == '%' && text[index + 1] == '{') || token.State == (int)Cases.C) && language == Languages.Flex)
+            if (((index + 1 < length && text[index] == '%' && text[index + 1] == '{') || token.State == (int)Cases.C) && language == Languages.FlexDefinitions)
             {
                 if ((index + 1 < length && text[index] == '%' && text[index + 1] == '{'))
                 {
@@ -135,7 +137,7 @@ namespace Flex_Highlighter
                 while (index < length)
                 {
                     index = AdvanceWhile(text, index, chr => chr != '%');
-                    if (index + 1 < length && text[index + 1] == '%' && (index - 1 > 0 && text[index - 1] == '\n'))
+                    if (index + 1 < length && text[index + 1] == '%' && index - 1 > 0 && text[index - 1] == '\n')
                     {
                         index += 2;
                         token.StartIndex = start;
@@ -160,45 +162,46 @@ namespace Flex_Highlighter
                 {
                     index++;
                     token.State = (int)Cases.CIndent;
-                    token.TokenId = Classes.C;
+                    token.TokenId = Classes.CIndent;
                 }
                 while (index < length)
                 {
                     index = AdvanceWhile(text, index, chr => chr != '\n');
                     token.StartIndex = start;
                     token.State = (int)Cases.NoCase;
-                    token.TokenId = Classes.C;
+                    token.TokenId = Classes.CIndent;
                     token.Length = index - start;
                     return token;
                 }
             }
 
             index = start;
-            if (((index + 1 < length && text[index] == '%' && text[index + 1] == '%') || token.State == (int)Cases.CEnding) && language == Languages.Flex)
+            if (((index + 1 < length && text[index] == '%' && text[index + 1] == '%') || token.State == (int)Cases.FlexRules) && language == Languages.FlexDefinitions)
             {
-                if (index + 1 < length && text[index] == '%' && text[index + 1] == '%')
+                //if (index + 1 < length && text[index] == '%' && text[index + 1] == '%')
                 {
                     index += 2;
-                    token.State = (int)Cases.CEnding;
+                    token.State = (int)Cases.FlexRules;
+                    token.TokenId = Classes.FlexRules;
                 }
 
                 while(index < length)
                 {
                     index = AdvanceWhile(text, index, chr => chr != '%');
-                    if (index + 1 < length && text[index + 1] == '%')
+                    if (index + 1 < length && text[index + 1] == '%' && text[index - 1] == '\n')
                     {
-                        index += 2;
-                        token.StartIndex = index;
-                        token.TokenId = Classes.C;
+                        token.StartIndex = start;
+                        token.TokenId = Classes.FlexRules;
                         token.State = (int)Cases.NoCase;
-                        ecase = Cases.CEnding;
-                        return token;
-                    }
-                    if (index >= length)
-                    {
+                        token.Length = index - start;
                         return token;
                     }
                     index++;
+                    if (index >= length)
+                    {
+                        token.StartIndex = start;
+                        return token;
+                    }
                 }
             }
 
@@ -214,7 +217,7 @@ namespace Flex_Highlighter
 
             if (language == Languages.FlexDefinitions)
             {
-                if(start == 0)
+                if(start == 0 || (index - 1 > 0 && text[index - 1] == '\n'))
                 {
                     index = start;
                     if (text[index] == '_' || Char.IsLetter(text[index]))
@@ -252,8 +255,16 @@ namespace Flex_Highlighter
                     ecase = Cases.NoCase;
                     return token;
                 }
+                if (ecase == Cases.CMacro)
+                {
+                    index = AdvanceWhile(text, index, chr => !Char.IsWhiteSpace(chr));
+                    token.TokenId = Classes.FlexDefinition;
+                    token.Length = index - start;
+                    ecase = Cases.NoCase;
+                    return token;
+                }
 
-                string[] test = { "#include", "#define" };
+                string[] test = { "#include", "#pragma", "#define", "#if", "#endif" };
                 foreach (var s in test)
                 {
                     int i = text.IndexOf(s);
@@ -266,10 +277,23 @@ namespace Flex_Highlighter
                                 token.TokenId = Classes.ExcludedCode;
                                 ecase = Cases.Include;
                                 return token;
+                            case "#pragma":
+                                token.Length = s.Length;
+                                token.TokenId = Classes.ExcludedCode;
+                                return token;
                             case "#define":
                                 token.Length = s.Length;
                                 token.TokenId = Classes.ExcludedCode;
-                                ecase = Cases.Include;
+                                ecase = Cases.CMacro;
+                                return token;
+                            case "#if":
+                                token.Length = s.Length;
+                                token.TokenId = Classes.ExcludedCode;
+                                ecase = Cases.CMacro;
+                                return token;
+                            case "#endif":
+                                token.Length = s.Length;
+                                token.TokenId = Classes.ExcludedCode;
                                 return token;
                             default:
                                 break;
@@ -277,7 +301,7 @@ namespace Flex_Highlighter
                     }
                 }
             }
-            if (language == Languages.Flex)
+            if (language == Languages.FlexDefinitions)
             {
                 if (text[index] == '#')
                 {
