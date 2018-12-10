@@ -46,7 +46,7 @@ namespace Flex_Highlighter
         private List<CommentRanges> Comments = new List<CommentRanges>();
         private List<string> Definitions = new List<string>();
 
-        internal Token Scan( string text, int startIndex, int length, Languages language, ref Cases ecase, int startTokenId = -1, int startState = 0)
+        internal Token Scan( string text, int startIndex, int length, ref Languages language, ref Cases ecase, int startTokenId = -1, int startState = 0)
         {
             //public class Token
             //{
@@ -161,15 +161,15 @@ namespace Flex_Highlighter
                 if (text[index] == '\t')
                 {
                     index++;
-                    token.State = (int)Cases.CIndent;
                     token.TokenId = Classes.CIndent;
+                    language = Languages.C;
                 }
                 while (index < length)
                 {
-                    index = AdvanceWhile(text, index, chr => chr != '\n');
+                    index = AdvanceWhile(text, index, chr => chr == '\t');
                     token.StartIndex = start;
                     token.State = (int)Cases.NoCase;
-                    token.TokenId = Classes.CIndent;
+                    token.TokenId = Classes.Other;
                     token.Length = index - start;
                     return token;
                 }
@@ -190,6 +190,7 @@ namespace Flex_Highlighter
                     index = AdvanceWhile(text, index, chr => chr != '%');
                     if (index + 1 < length && text[index + 1] == '%' && text[index - 1] == '\n')
                     {
+                        index += 2;
                         token.StartIndex = start;
                         token.TokenId = Classes.FlexRules;
                         token.State = (int)Cases.NoCase;
@@ -203,6 +204,38 @@ namespace Flex_Highlighter
                         return token;
                     }
                 }
+            }
+
+            if (((index + 1 < length && text[index] == '%' && text[index + 1] == '%') || token.State == (int)Cases.CEnding) && language == Languages.Flex)
+            {
+                //if (index + 1 < length && text[index] == '%' && text[index + 1] == '%')
+                {
+                    index += 2;
+                    token.State = (int)Cases.CEnding;
+                    token.TokenId = Classes.CIndent;
+                    token.StartIndex = index;
+                    //ecase = Cases.CEnding;
+                    return token;
+                }
+
+                //while (index < length)
+                //{
+                //    index = AdvanceWhile(text, index, chr => chr != '%');
+                //    if (index + 1 < length && text[index + 1] == '%' && text[index - 1] == '\n')
+                //    {
+                //        token.StartIndex = start;
+                //        token.TokenId = Classes.CIndent;
+                //        token.State = (int)Cases.NoCase;
+                //        token.Length = index - start;
+                //        return token;
+                //    }
+                //    index++;
+                //    if (index >= length)
+                //    {
+                //        token.StartIndex = start;
+                //        return token;
+                //    }
+                //}
             }
 
             index = start;
@@ -224,9 +257,9 @@ namespace Flex_Highlighter
                     {
                         index++;
                         index = AdvanceWhileDefinition(text, index);
-                        if (Char.IsWhiteSpace(text[index]))
+                        if (index < text.Length && Char.IsWhiteSpace(text[index]))
                         {
-                            Definitions.Add(new string(text.ToCharArray(), start, index));
+                            Definitions.Add(new string(text.ToCharArray(), start, index-start));
                             token.Length = index - start;
                             token.TokenId = Classes.FlexDefinition;
                             return token;

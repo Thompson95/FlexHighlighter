@@ -1,0 +1,8 @@
+*.suo
+*.ide
+*.ide-wal
+*.dll
+*.pdb
+*/bin/*
+*/obj/*
+*/v15/*
