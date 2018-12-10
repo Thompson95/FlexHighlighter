@@ -40,6 +40,7 @@ namespace Flex_Highlighter
             internal readonly static short FlexDefinitions = -3;
             internal readonly static short CIndent = -4;
             internal readonly static short FlexRules = -5;
+            internal readonly static short CEnding = -6;
         }
         internal FlexTokenizer(IStandardClassificationService classifications) => Classifications = classifications;
         internal IStandardClassificationService Classifications { get; }
@@ -126,18 +127,13 @@ namespace Flex_Highlighter
                 }
             }
 
-            if (((index + 1 < length && text[index] == '%' && text[index + 1] == '}') || token.State == (int)Cases.FlexDefinitions) && language == Languages.C)
+            if (language == Languages.NoLanguage)
             {
-                //if ((index + 1 < length && text[index] == '%' && text[index + 1] == '}'))
-                {
-                    index += 2;
-                    token.State = (int)Cases.FlexDefinitions;
-                }
-
-                while (index < length)
+                token.State = (int)Cases.FlexDefinitions;
+                while (index <= length)
                 {
                     index = AdvanceWhile(text, index, chr => chr != '%');
-                    if (index + 1 < length && text[index + 1] == '%' && index - 1 > 0 && text[index - 1] == '\n')
+                    if (index + 1 < length && text[index + 1] == '%')
                     {
                         index += 2;
                         token.StartIndex = start;
@@ -146,16 +142,48 @@ namespace Flex_Highlighter
                         token.Length = index - start;
                         return token;
                     }
-                    index++;
                     if (index >= length)
                     {
                         token.StartIndex = start;
+                        token.State = (int)Cases.NoCase;
+                        token.TokenId = Classes.FlexDefinitions;
+                        token.Length = index - start;
                         return token;
                     }
+                    index++;
                 }
             }
 
-            index = start;
+                    //if (((index + 1 < length && text[index] == '%' && text[index + 1] == '}') || token.State == (int)Cases.FlexDefinitions) && language == Languages.C)
+                    //{
+                    //    //if ((index + 1 < length && text[index] == '%' && text[index + 1] == '}'))
+                    //    {
+                    //        index += 2;
+                    //        token.State = (int)Cases.FlexDefinitions;
+                    //    }
+
+                    //    while (index < length)
+                    //    {
+                    //        index = AdvanceWhile(text, index, chr => chr != '%');
+                    //        if (index + 1 < length && text[index + 1] == '%' && index - 1 > 0 && text[index - 1] == '\n')
+                    //        {
+                    //            index += 2;
+                    //            token.StartIndex = start;
+                    //            token.State = (int)Cases.NoCase;
+                    //            token.TokenId = Classes.FlexDefinitions;
+                    //            token.Length = index - start;
+                    //            return token;
+                    //        }
+                    //        index++;
+                    //        if (index >= length)
+                    //        {
+                    //            token.StartIndex = start;
+                    //            return token;
+                    //        }
+                    //    }
+                    //}
+
+                index = start;
             if ((text[index] == '\t' || token.State == (int)Cases.CIndent) && language == Languages.Flex)
             {
                 if (text[index] == '\t')
@@ -190,7 +218,7 @@ namespace Flex_Highlighter
                     index = AdvanceWhile(text, index, chr => chr != '%');
                     if (index + 1 < length && text[index + 1] == '%' && text[index - 1] == '\n')
                     {
-                        index += 2;
+                        //index += 2;
                         token.StartIndex = start;
                         token.TokenId = Classes.FlexRules;
                         token.State = (int)Cases.NoCase;
@@ -212,7 +240,7 @@ namespace Flex_Highlighter
                 {
                     index += 2;
                     token.State = (int)Cases.CEnding;
-                    token.TokenId = Classes.CIndent;
+                    token.TokenId = Classes.CEnding;
                     token.StartIndex = index;
                     //ecase = Cases.CEnding;
                     return token;
@@ -257,7 +285,7 @@ namespace Flex_Highlighter
                     {
                         index++;
                         index = AdvanceWhileDefinition(text, index);
-                        if (index < text.Length && Char.IsWhiteSpace(text[index]))
+                        if ((index < text.Length && Char.IsWhiteSpace(text[index])) || index == length)
                         {
                             Definitions.Add(new string(text.ToCharArray(), start, index-start));
                             token.Length = index - start;
@@ -267,10 +295,10 @@ namespace Flex_Highlighter
                     }
                     
                 }
-                start = index;
+                index = start;
             }
 
-            if(language == Languages.C)
+            if(language == Languages.C || language == Languages.CEnding)
             {
                 if (text[index] == '\"')
                 {
@@ -384,7 +412,7 @@ namespace Flex_Highlighter
             }
             else
             {
-                if (language == Languages.C)
+                if (language == Languages.C || language == Languages.CEnding)
                 {
                     token.TokenId = FlexKeywords.CContains(word) ? Classes.Keyword : Classes.Other;
                 }
