@@ -47,7 +47,7 @@ namespace Flex_Highlighter
         private List<CommentRanges> Comments = new List<CommentRanges>();
         private List<string> Definitions = new List<string>();
 
-        internal Token Scan( string text, int startIndex, int length, ref Languages language, ref Cases ecase, int startTokenId = -1, int startState = 0)
+        internal Token Scan( string text, int startIndex, int length, ref Languages language, ref Cases ecase, List<Tuple<int, int>> innerSections, int startTokenId = -1, int startState = 0)
         {
             //public class Token
             //{
@@ -133,7 +133,7 @@ namespace Flex_Highlighter
                 while (index <= length)
                 {
                     index = AdvanceWhile(text, index, chr => chr != '%');
-                    if (index + 1 < length && text[index + 1] == '%')
+                    if (index + 1 < length && text[index + 1] == '%' && !IsBetween(index, innerSections))
                     {
                         index += 2;
                         token.StartIndex = start;
@@ -216,7 +216,7 @@ namespace Flex_Highlighter
                 while(index < length)
                 {
                     index = AdvanceWhile(text, index, chr => chr != '%');
-                    if (index + 1 < length && text[index + 1] == '%' && text[index - 1] == '\n')
+                    if (index + 1 < length && text[index + 1] == '%' && text[index - 1] == '\n' && !IsBetween(index, innerSections))
                     {
                         //index += 2;
                         token.StartIndex = start;
@@ -435,6 +435,34 @@ namespace Flex_Highlighter
                 }
             }
             return true;
+        }
+
+        private bool IsBetween(int value, int x1, int x2)
+        {
+            if (value >= x1 && value <= x2)
+            {
+                return true;
+            }
+            return false;
+        }
+        private bool IsBetween(int value, Tuple<int, int> range)
+        {
+            if (value >= range.Item1 && value <= range.Item2)
+            {
+                return true;
+            }
+            return false;
+        }
+
+        private bool IsBetween(int value, List<Tuple<int, int>> innerSections)
+        {
+            foreach( var range in innerSections)
+                if (value >= range.Item1 && value <= range.Item2)
+                {
+                    return true;
+                }
+
+            return false;
         }
 
         private int AdvanceWhile(string text, int index, Func<char, bool> predicate)
