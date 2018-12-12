@@ -47,7 +47,7 @@ namespace Flex_Highlighter
         private List<CommentRanges> Comments = new List<CommentRanges>();
         private List<string> Definitions = new List<string>();
 
-        internal Token Scan( string text, int startIndex, int length, ref Languages language, ref Cases ecase, List<Tuple<int, int>> innerSections, int startTokenId = -1, int startState = 0)
+        internal Token Scan( string text, int startIndex, int length, ref Languages language, ref Cases ecase, List<int[]> innerSections, int startTokenId = -1, int startState = 0)
         {
             //public class Token
             //{
@@ -73,9 +73,9 @@ namespace Flex_Highlighter
 
             if ((index + 1 < length && text[index] == '/' && text[index + 1] == '*') || token.State == (int)Cases.MultiLineComment)
             {
-                if (index + 1 < length && text[index] == '/' && text[index + 1] == '*')
+                //if (index + 1 < length && text[index] == '/' && text[index + 1] == '*')
                 {
-                    index++;
+                    index += 2;
                     token.State = (int)Cases.MultiLineComment;
                     token.TokenId = Classes.MultiLineComment;
                 }
@@ -87,6 +87,7 @@ namespace Flex_Highlighter
                     {
                         token.State = (int)Cases.NoCase;
                         token.Length = index + 2 - startIndex;
+                        token.TokenId = Classes.MultiLineComment;
                         return token;
                     }
                 }
@@ -107,7 +108,7 @@ namespace Flex_Highlighter
                 while (index < length)
                 {
                     index = AdvanceWhile(text, index, chr => chr != '%');
-                    if (index + 1 < length && text[index + 1] == '}' && (index - 1 > 0 && text[index - 1] == '\n'))
+                    if (index + 1 < length && text[index + 1] == '}' && (index - 1 > 0 && text[index - 1] == '\n') && !IsBetween(index, innerSections))
                     {
                         index += 2;
                         token.StartIndex = start;
@@ -133,7 +134,7 @@ namespace Flex_Highlighter
                 while (index <= length)
                 {
                     index = AdvanceWhile(text, index, chr => chr != '%');
-                    if (index + 1 < length && text[index + 1] == '%' && !IsBetween(index, innerSections))
+                    if (index + 1 < length && text[index + 1] == '%' && !IsBetween(index, innerSections) && index - 1 > 0 && text[index - 1] == '\n')
                     {
                         index += 2;
                         token.StartIndex = start;
@@ -454,10 +455,10 @@ namespace Flex_Highlighter
             return false;
         }
 
-        private bool IsBetween(int value, List<Tuple<int, int>> innerSections)
+        private bool IsBetween(int value, List<int[]> innerSections)
         {
             foreach( var range in innerSections)
-                if (value >= range.Item1 && value <= range.Item2)
+                if (value >= range[0] && value <= range[1])
                 {
                     return true;
                 }
