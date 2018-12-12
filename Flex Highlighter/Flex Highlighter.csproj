@@ -54,6 +54,7 @@
     <Compile Include="FlexClassifierProvider.cs" />
     <Compile Include="FlexKeywords.cs" />
     <Compile Include="FlexTokenizer.cs" />
+    <Compile Include="IFlexClassificationService.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
