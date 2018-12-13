@@ -106,7 +106,6 @@ E:\Programming\FlexHighlighter\Flex Highlighter\bin\Debug\Microsoft.VisualStudio
 E:\Programming\FlexHighlighter\Flex Highlighter\bin\Debug\Microsoft.VisualStudio.Utilities.xml
 E:\Programming\FlexHighlighter\Flex Highlighter\bin\Debug\Microsoft.VisualStudio.Imaging.xml
 E:\Programming\FlexHighlighter\Flex Highlighter\bin\Debug\Microsoft.VisualStudio.ImageCatalog.xml
-E:\Programming\FlexHighlighter\Flex Highlighter\obj\Debug\Flex Highlighter.csprojAssemblyReference.cache
 E:\Programming\FlexHighlighter\Flex Highlighter\obj\Debug\Flex Highlighter.csproj.CoreCompileInputs.cache
 E:\Programming\FlexHighlighter\Flex Highlighter\obj\Debug\Flex Highlighter.csproj.CopyComplete
 E:\Programming\FlexHighlighter\Flex Highlighter\obj\Debug\Flex Highlighter.dll

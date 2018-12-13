@@ -56,7 +56,8 @@ namespace Flex_Highlighter
             token.TokenId = startTokenId;
             token.State = startState;
             token.Length = length - index;
-
+            if (index >= text.Length)
+                return token;
 
             if (index + 1 < length && text[index] == '/' && text[index + 1] == '/')
             {
@@ -149,7 +150,7 @@ namespace Flex_Highlighter
             }
 
             index = start;
-            if ((text[index] == '\t' || token.State == (int)Cases.CIndent) && language == Languages.Flex)
+            if ((index < length && text[index] == '\t' || token.State == (int)Cases.CIndent) && language == Languages.Flex)
             {
                 if (text[index] == '\t')
                 {
@@ -168,7 +169,7 @@ namespace Flex_Highlighter
                 }
             }
 
-            if ((text[index] == '\t' || token.State == (int)Cases.CIndent) && language == Languages.FlexDefinitions)
+            if ((index < length && text[index] == '\t' || token.State == (int)Cases.CIndent) && language == Languages.FlexDefinitions)
             {
                 if (text[index] == '\t')
                 {
@@ -361,9 +362,9 @@ namespace Flex_Highlighter
                 {
                     foreach (var definition in FlexDefinitions)
                     {
-                        foreach (Match match in new Regex($"{definition}}}").Matches(text))
+                        foreach (Match match in new Regex($"{{{definition}}}").Matches(text))
                         {
-                            if (match.Index == index)
+                            if (match.Index == index - 1)
                             {
                                 token.TokenId = Classes.FlexDefinition;
                                 token.Length = definition.Length;
@@ -394,7 +395,7 @@ namespace Flex_Highlighter
                     int i = -1;
                     foreach (Match match in new Regex(s).Matches(text))
                     {
-                        if (match.Index == index)
+                        if (match.Index == 0)
                         {
                             i = index;
                         }
