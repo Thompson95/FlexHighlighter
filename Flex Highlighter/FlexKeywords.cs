@@ -11,7 +11,8 @@ namespace Flex_Highlighter
     {
         private static readonly List<string> keywordsC = new List<string>
         {
-            "%%", "%{", "}%", "int", "double", "float", "string", "void", "return", "switch", "if", "else", "while", "true", "false"
+            "auto", "break", "case", "char", "const", "continue", "default", "do", "double", "else", "enum", "extern", "float", "for", "goto", "if", "int",
+            "long", "register", "return", "short", "signed", "sizeof", "static", "struct", "switch", "typedef", "union", "unsigned", "void", "volatile", "while" 
         };
         private static readonly HashSet<string> keywordSetC = new HashSet<string>(keywordsC, StringComparer.OrdinalIgnoreCase);
         internal static IReadOnlyList<string> AllC { get; } = new ReadOnlyCollection<string>(keywordsC);

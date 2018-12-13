@@ -18,18 +18,16 @@ namespace Flex_Highlighter
     public enum Cases
     {
         NoCase = 0,
-        Comment = 1,
-        MultiLineComment = 2,
-        Option = 3,
-        Include = 4,
-        String = 5,
-        C = 6,
-        Flex = 7,
-        CIndent = 8,
-        CEnding = 9,
-        FlexDefinitions = 10,
-        CMacro = 11,
-        FlexRules = 12
+        MultiLineComment,
+        Option,
+        Include,
+        C,
+        CIndent,
+        CEnding,
+        FlexDefinitions,
+        CMacro,
+        FlexRules,
+        DefinitionUsed
     }
     public class Token
     {
@@ -143,7 +141,7 @@ namespace Flex_Highlighter
                 if (mlt != null)
                 {
                     _multiLineTokens.Add(mlt);
-                    Invalidate(mlt.Tracking.GetSpan(snapshot));
+                    Invalidate(new SnapshotSpan(mlt.Tracking.GetStartPoint(snapshot), mlt.Tracking.GetEndPoint(snapshot).Add(mlt.Tracking.GetEndPoint(snapshot) > snapshot.Length - 2 ? 0 : 2)));
                 }
             }
             _multiLineTokens = _multiLineTokens.OrderBy( x => x.Tracking.GetStartPoint(snapshot).Position).ToList();
@@ -165,16 +163,12 @@ namespace Flex_Highlighter
                 {
                     if (span.IntersectsWith(multiSpan))
                     {
-                        //if (span.Start == multiSpan.End)
-                        //    continue;
                         isInsideMultiline = true;
                         if (span.Snapshot.Version != _multiLineTokens[i].Version)
                         {
                             auxLanguage = _multiLineTokens[i].Language;
                             if (_multiLineTokens[i].Classification != null)
                             {
-                                //list.Add(new ClassificationSpan(multiSpan, _multiLineTokens[i].Classification));
-                                //return list;
                                 Invalidate(multiSpan);
                                 span = new SnapshotSpan(span.Start.Position < multiSpan.Start.Position ? span.Start : multiSpan.Start, span.End.Position > multiSpan.End.Position ? span.End : multiSpan.End);
                                 _multiLineTokens.RemoveAt(i);
@@ -189,16 +183,15 @@ namespace Flex_Highlighter
                                     innerSections.Add(new int[2] { auxSpan.Start.Position + 2, auxSpan.End.Position });
                                 }
                             }
+                            var spanUnion = new SnapshotSpan(new SnapshotPoint(snapshot, Math.Min(span.Start.Position, multiSpan.Start.Position)), new SnapshotPoint(snapshot, Math.Max(span.End.Position, multiSpan.End.Position)));
                             if (auxLanguage == Languages.FlexDefinitions)
-                            {
                                 mlt = HandleFlexDefinitions(span, innerSections);
-                            }
                             else if (auxLanguage == Languages.Flex)
-                                mlt = GetLanguageSpan(multiSpan, innerSections,Languages.FlexDefinitions);
+                                mlt = GetLanguageSpan(spanUnion, innerSections,Languages.FlexDefinitions);
                             else if (auxLanguage == Languages.CEnding)
-                                mlt = GetLanguageSpan(multiSpan, innerSections, Languages.Flex);
+                                mlt = GetLanguageSpan(spanUnion, innerSections, Languages.Flex);
                             else
-                                mlt = GetLanguageSpan(multiSpan, innerSections);
+                                mlt = GetLanguageSpan(spanUnion, innerSections);
 
                             if (mlt != null)
                             {
@@ -208,14 +201,25 @@ namespace Flex_Highlighter
                                     continue;
                                 }
                                 _multiLineTokens.RemoveAt(i);
+                                List<MultiLineToken> auxList = new List<MultiLineToken>(_multiLineTokens.Where(x => x.Classification == null && x.Tracking.GetStartPoint(snapshot).Position >= mlt.Tracking.GetStartPoint(snapshot).Position));
+                                foreach (var token in auxList)
+                                {
+                                    _multiLineTokens.Remove(token);
+                                    Invalidate(new SnapshotSpan(token.Tracking.GetStartPoint(snapshot), token.Tracking.GetEndPoint(snapshot).Add(token.Tracking.GetEndPoint(snapshot) > snapshot.Length - 2 ? 0 : 2)));
+                                }
                                 ClearTokenIntersections(mlt.Tracking.GetSpan(snapshot), snapshot);
                                 if (mlt.Language == Languages.Flex && _multiLineTokens.Where(x => x.Language == Languages.Flex).Any())
                                     _multiLineTokens.Remove(_multiLineTokens.Where(x => x.Language == Languages.Flex).First());
                                 i = _multiLineTokens.Count();
                                 _multiLineTokens.Add(mlt);
-                                var auxSpan = new SnapshotSpan(mlt.Tracking.GetStartPoint(snapshot), mlt.Tracking.GetEndPoint(snapshot).Add(mlt.Tracking.GetEndPoint(snapshot) > snapshot.Length - 2 ? 0 : 2));
-                                Invalidate(auxSpan);
-                                //Invalidate(mlt.Tracking.GetSpan(span.Snapshot));
+                                Invalidate(new SnapshotSpan(mlt.Tracking.GetStartPoint(snapshot), mlt.Tracking.GetEndPoint(snapshot).Add(mlt.Tracking.GetEndPoint(snapshot) > snapshot.Length - 2 ? 0 : 2)));
+                                if (auxLanguage == Languages.FlexDefinitions)
+                                {
+                                    FlexTokenizer.Definitions.Clear();
+                                    SnapshotSpan? auxSpan = _multiLineTokens.Where(x => x.Language == Languages.Flex && x.Classification == null)?.FirstOrDefault()?.Tracking?.GetSpan(snapshot);
+                                    if (auxSpan != null)
+                                        Invalidate((SnapshotSpan)auxSpan);
+                                }
                                 sectionDistances.Add(new Tuple<Languages, int>(auxLanguage, span.Start - multiSpan.Start));
                             }
                             else
@@ -226,12 +230,12 @@ namespace Flex_Highlighter
                                     _multiLineTokens.Remove(_multiLineTokens.Where(x => x.Classification == null && x.Tracking.GetStartPoint(snapshot) >= multiSpan.End).FirstOrDefault());
                                     i = _multiLineTokens.Count;
                                 }
-                                //Invalidate(multiSpan);
+                                Invalidate(multiSpan);
                             }
                         }
                         else
                         {
-                            if (_multiLineTokens[i].Classification != null && span.End.Position > _multiLineTokens[i].Tracking.GetStartPoint(snapshot).Position)
+                            if (_multiLineTokens[i].Classification != null && span.End.Position > _multiLineTokens[i].Tracking.GetStartPoint(snapshot).Position && span.Start.Position >= _multiLineTokens[i].Tracking.GetStartPoint(snapshot).Position)
                             {
                                 list.Add(new ClassificationSpan(multiSpan, _multiLineTokens[i].Classification));
                                 return list;
@@ -248,10 +252,7 @@ namespace Flex_Highlighter
                 language = sectionDistances.Where(s => s.Item2 >= 0).OrderBy(s => s.Item2).FirstOrDefault().Item1;
             }
             Debug.WriteLine("=============================");
-            foreach (var item in _multiLineTokens)
-            {
-                Debug.WriteLine($"{item.Language}\t({item.Tracking.GetStartPoint(snapshot).Position}, {item.Tracking.GetEndPoint(snapshot).Position})");
-            }
+            Debug.WriteLine(FlexTokenizer.Definitions.Count);
 
             //if (!isInsideMultiline || language == Languages.C || language == Languages.Flex)
             {
@@ -377,7 +378,7 @@ namespace Flex_Highlighter
                                 {
                                     
                                     ClearTokenIntersections(tokenSpan, snapshot, true);
-                                    MultiLineToken tokenToCheck = _multiLineTokens.Where( x => x.Tracking.GetEndPoint(snapshot).Position > tokenSpan.Start && x.Tracking.GetEndPoint(snapshot) <= tokenSpan.End).FirstOrDefault();
+                                    MultiLineToken tokenToCheck = _multiLineTokens.Where( x => x.Tracking.GetEndPoint(snapshot).Position > tokenSpan.Start && x.Tracking.GetEndPoint(snapshot) < tokenSpan.End).FirstOrDefault();
                                     if (tokenToCheck != null)
                                     {
                                         _multiLineTokens = _multiLineTokens.OrderBy( x => x.Tracking.GetStartPoint(snapshot)).ToList();
@@ -494,11 +495,6 @@ namespace Flex_Highlighter
                         {
                             endPosition = startPosition + token.Length;
                         }
-                        if (ecase == Cases.CEnding)
-                        {
-                            startPosition += token.StartIndex;
-                            endPosition = span.Snapshot.Length;
-                        }
                         while (token != null && token.State != 0 && endPosition < span.Snapshot.Length)
                         {
                             int textSize = snapshot.Length - endPosition; //Math.Min(span.Snapshot.Length - endPosition, 1024);
@@ -571,7 +567,7 @@ namespace Flex_Highlighter
                         if (token.TokenId >= FlexTokenizer.Classes.Other)
                             list.Add(new ClassificationSpan(tokenSpan, classification));
 
-                        if (multiLineToken)
+                        if (multiLineToken && classification == null)
                         {
                             //if (!_multiLineTokens.Any(a => a.Tracking.GetSpan(span.Snapshot).Span == tokenSpan.Span))
                             {
