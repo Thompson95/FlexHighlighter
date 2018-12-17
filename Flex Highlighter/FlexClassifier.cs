@@ -70,10 +70,11 @@ namespace Flex_Highlighter
             ClassificationRegistry = registry;
             Classification = classification;
             Buffer = buffer;
-            FlexDefinitionType = registry.CreateClassificationType("Flex Definition", new IClassificationType[0]);
-            CSection = registry.CreateClassificationType("CSection", new IClassificationType[0]);
-            FlexSection = registry.CreateClassificationType("FlexSection", new IClassificationType[0]);
-            FlexDefinitionSection = registry.CreateClassificationType("FlexDefinitionSection", new IClassificationType[0]);
+            if (registry.GetClassificationType("Flex Definition") != null)
+                FlexDefinitionType = registry.GetClassificationType("Flex Definition");
+            else
+                FlexDefinitionType = registry.CreateClassificationType("Flex Definition", new IClassificationType[0]);
+
             _multiLineTokens = new List<MultiLineToken>();
 
             tokenizer = new FlexTokenizer(classification);

@@ -113,3 +113,4 @@ E:\Programming\FlexHighlighter\Flex Highlighter\obj\Debug\Flex Highlighter.pdb
 E:\Programming\FlexHighlighter\Flex Highlighter\obj\Debug\extension.vsixmanifest
 E:\Programming\FlexHighlighter\Flex Highlighter\obj\Debug\files.json
 E:\Programming\FlexHighlighter\Flex Highlighter\obj\Debug\createTemplateManifests.cache
+E:\Programming\FlexHighlighter\Flex Highlighter\obj\Debug\Flex Highlighter.csprojAssemblyReference.cache
