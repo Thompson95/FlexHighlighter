@@ -26,5 +26,25 @@ namespace Flex_Highlighter
         private static readonly HashSet<string> keywordSetFlex = new HashSet<string>(keywordsFlex, StringComparer.OrdinalIgnoreCase);
         internal static IReadOnlyList<string> AllFlex { get; } = new ReadOnlyCollection<string>(keywordsFlex);
         internal static bool FlexContains(string word) => keywordSetFlex.Contains(word);
+
+
+        private static readonly List<string> escapedCharacters = new List<string>
+        {
+            "\\\\\\\\", "\\\\\\.", "\\\\,", "\\\\\\+", "\\\\\\*", "\\\\\\?", "\\\\\\[", "\\\\\\^", "\\\\\\]", "\\\\\\$", "\\\\\\(", "\\\\\\)", "\\\\\\{",
+            "\\\\\\}", "\\\\=", "\\\\!", "\\\\<", "\\\\>", "\\\\\\|", "\\\\\\/", "\\\\:", "\\\\t", "\\\\n", "\\\\r", "\\\\0", "\\\\D", "\\\\d",
+            "\\\\s", "\\\\S", "\\\\w", "\\\\W", "\\\\b", "\\\\B"
+        };
+        private static readonly HashSet<string> escapedCharactersSet = new HashSet<string>(escapedCharacters, StringComparer.OrdinalIgnoreCase);
+        internal static IReadOnlyList<string> AllEscapedCharacters { get; } = new ReadOnlyCollection<string>(escapedCharacters);
+        internal static bool EscapedCharactersContains(string word) => escapedCharactersSet.Contains(word);
+
+
+        private static readonly List<string> specialCharacters = new List<string>
+        {
+            ".", "*", "^", "$", "?", "|" , "+"
+        };
+        private static readonly HashSet<string> specialCharactersSet = new HashSet<string>(specialCharacters, StringComparer.OrdinalIgnoreCase);
+        internal static IReadOnlyList<string> AllSpecialCharacters { get; } = new ReadOnlyCollection<string>(specialCharacters);
+        internal static bool SpecialCharactersContains(string word) => specialCharactersSet.Contains(word);
     }
 }

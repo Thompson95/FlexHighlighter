@@ -11,17 +11,6 @@ using System.Diagnostics;
 
 namespace Flex_Highlighter
 {
-    internal class CommentRanges
-    {
-        public int start;
-        public int end;
-
-        public CommentRanges(int s = 0, int e = 0)
-        {
-            start = s;
-            end = e;
-        }
-    }
     internal sealed class FlexTokenizer
     {
 
@@ -35,6 +24,12 @@ namespace Flex_Highlighter
             internal readonly static short StringLiteral = 5;
             internal readonly static short ExcludedCode = 6;
             internal readonly static short FlexDefinition = 7;
+            internal readonly static short RegexQuantifier = 8;
+            internal readonly static short EscapedCharacter = 9;
+            internal readonly static short RegexGroup = 10;
+            internal readonly static short RegexCharacterSet = 11;
+            internal readonly static short RegexLetters = 12;
+            internal readonly static short RegexSpecialCharacters = 13;
             internal readonly static short Other = -1;
             internal readonly static short C = -2;
             internal readonly static short FlexDefinitions = -3;
@@ -44,7 +39,6 @@ namespace Flex_Highlighter
         }
         internal FlexTokenizer(IStandardClassificationService classifications) => Classifications = classifications;
         internal IStandardClassificationService Classifications { get; }
-        private List<CommentRanges> Comments = new List<CommentRanges>();
         internal static List<string> FlexDefinitions = new List<string>();
         internal static List<string> CDefinitions = new List<string>();
 
@@ -58,6 +52,69 @@ namespace Flex_Highlighter
             token.Length = length - index;
             if (index >= text.Length)
                 return token;
+
+            if (language == Languages.Regex || language == Languages.Flex)
+            {
+                var matches = Regex.Matches(text, @"{[0-9]+,*[0-9]*}");
+                if (matches.Count != 0 && index > 0)
+                {
+                    foreach (Match match in matches)
+                    {
+                        if(match.Index == index)
+                        {
+                            token.TokenId = Classes.RegexQuantifier;
+                            token.Length = match.Length;
+                            return token;
+                        }
+                    }
+                }
+                var regex = new Regex(@"\([^\n\)]*(?<!\\)\)");
+                matches = regex.Matches(text, index);
+                if (matches.Count != 0)
+                {
+                    foreach (Match match in matches)
+                    {
+                        if (match.Index == index)
+                        {
+                            token.TokenId = Classes.RegexGroup;
+                            token.Length = match.Length;
+                            return token;
+                        }
+                    }
+                }
+
+                regex = new Regex(@"\[[^\n\]]*(?<!\\)\]");
+                matches = regex.Matches(text, index);
+                if (matches.Count != 0)
+                {
+                    foreach (Match match in matches)
+                    {
+                        if (match.Index == index)
+                        {
+                            token.TokenId = Classes.RegexCharacterSet;
+                            token.Length = match.Length;
+                            return token;
+                        }
+                    }
+                }
+
+                foreach (var escapeCharacter in FlexKeywords.AllEscapedCharacters)
+                {
+                    matches = Regex.Matches(text, escapeCharacter);
+                    if (matches.Count != 0)
+                    {
+                        foreach (Match match in matches)
+                        {
+                            if (match.Index == index)
+                            {
+                                token.TokenId = Classes.EscapedCharacter;
+                                token.Length = match.Length;
+                                return token;
+                            }
+                        }
+                    }
+                }
+            }
 
             if (index + 1 < length && text[index] == '/' && text[index + 1] == '/')
             {
@@ -442,9 +499,16 @@ namespace Flex_Highlighter
                 {
                     token.TokenId = FlexKeywords.CContains(word) ? Classes.Keyword : Classes.Other;
                 }
-                else if ((language == Languages.Flex || language == Languages.Regex) && Regex.IsMatch(word, "^[A-Za-z]+$"))
+                else if (language == Languages.Flex || language == Languages.Regex)
                 {
-                    token.TokenId = Classes.StringLiteral;
+                    if (Regex.IsMatch(word, "^[A-Za-z]+$"))
+                    {
+                        token.TokenId = Classes.RegexLetters;
+                    }
+                    else
+                    {
+                        token.TokenId = FlexKeywords.SpecialCharactersContains(word) ? Classes.RegexSpecialCharacters : Classes.Other;
+                    }
                 }
                 else
                 {
@@ -455,7 +519,7 @@ namespace Flex_Highlighter
             return token;
         }
 
-        private bool IsDecimalInteger(string word)
+        internal static bool IsDecimalInteger(string word)
         {
             foreach (var chr in word)
             {
@@ -495,7 +559,7 @@ namespace Flex_Highlighter
             return false;
         }
 
-        private int AdvanceWhile(string text, int index, Func<char, bool> predicate)
+        internal static int AdvanceWhile(string text, int index, Func<char, bool> predicate)
         {
             for (int length = text.Length; index < length && predicate(text[index]); index++) ;
             return index;

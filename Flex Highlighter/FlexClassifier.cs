@@ -5,6 +5,7 @@ using Microsoft.VisualStudio.Text.Classification;
 using Microsoft.VisualStudio.Language.StandardClassification;
 using System.Linq;
 using System.Diagnostics;
+using System.Text.RegularExpressions;
 
 namespace Flex_Highlighter
 {
@@ -58,9 +59,13 @@ namespace Flex_Highlighter
         internal List<MultiLineToken> _multiLineTokens;
         private readonly IClassificationType classificationType;
         internal readonly IClassificationType FlexDefinitionType;
-        internal readonly IClassificationType FlexDefinitionSection;
-        internal readonly IClassificationType FlexSection;
-        internal readonly IClassificationType CSection;
+        internal readonly IClassificationType RegexQuantifier;
+        internal readonly IClassificationType RegexEscapedCharacter;
+        internal readonly IClassificationType RegexGroups;
+        internal readonly IClassificationType RegexCharacterSet;
+        internal readonly IClassificationType RegexLetters;
+        internal readonly IClassificationType RegexLettersInGroup;
+        internal readonly IClassificationType RegexSpecialCharacter;
         /// <summary>
         /// Initializes a new instance of the <see cref="FlexClassifier"/> class.
         /// </summary>
@@ -70,17 +75,51 @@ namespace Flex_Highlighter
             ClassificationRegistry = registry;
             Classification = classification;
             Buffer = buffer;
+
             if (registry.GetClassificationType("Flex Definition") != null)
                 FlexDefinitionType = registry.GetClassificationType("Flex Definition");
             else
                 FlexDefinitionType = registry.CreateClassificationType("Flex Definition", new IClassificationType[0]);
 
+            if (registry.GetClassificationType("Regex Quantifier") != null)
+                RegexQuantifier = registry.GetClassificationType("Regex Quantifier");
+            else
+                RegexQuantifier = registry.CreateClassificationType("Regex Quantifier", new IClassificationType[0]);
+
+            if (registry.GetClassificationType("Regex Escaped Character") != null)
+                RegexEscapedCharacter = registry.GetClassificationType("Regex Escaped Character");
+            else
+                RegexEscapedCharacter = registry.CreateClassificationType("Regex Escaped Character", new IClassificationType[0]);
+
+            if (registry.GetClassificationType("Regex Group") != null)
+                RegexGroups = registry.GetClassificationType("Regex Group");
+            else
+                RegexGroups = registry.CreateClassificationType("Regex Group", new IClassificationType[0]);
+
+            if (registry.GetClassificationType("Regex Character Set") != null)
+                RegexCharacterSet = registry.GetClassificationType("Regex Character Set");
+            else
+                RegexCharacterSet = registry.CreateClassificationType("Regex Character Set", new IClassificationType[0]);
+
+            if (registry.GetClassificationType("Regex Letters") != null)
+                RegexLetters = registry.GetClassificationType("Regex Letters");
+            else
+                RegexLetters = registry.CreateClassificationType("Regex Letters", new IClassificationType[0]);
+
+            if (registry.GetClassificationType("Regex Letters in Group") != null)
+                RegexLettersInGroup = registry.GetClassificationType("Regex Letters in Group");
+            else
+                RegexLettersInGroup = registry.CreateClassificationType("Regex Letters in Group", new IClassificationType[0]);
+
+            if (registry.GetClassificationType("Regex Special Character") != null)
+                RegexSpecialCharacter = registry.GetClassificationType("Regex Special Character");
+            else
+                RegexSpecialCharacter = registry.CreateClassificationType("Regex Special Character", new IClassificationType[0]);
             _multiLineTokens = new List<MultiLineToken>();
 
             tokenizer = new FlexTokenizer(classification);
-            this.classificationType = registry.GetClassificationType("FlexerClassifier");
         }
-
+        
 
         private readonly FlexTokenizer tokenizer;
 
@@ -401,6 +440,24 @@ namespace Flex_Highlighter
                             case 7:
                                 classification = FlexDefinitionType;
                                 break;
+                            case 8:
+                                classification = RegexQuantifier;
+                                break;
+                            case 9:
+                                classification = RegexEscapedCharacter;
+                                break;
+                            case 10:
+                                classification = RegexGroups;
+                                break;
+                            case 11:
+                                classification = RegexCharacterSet;
+                                break;
+                            case 12:
+                                classification = RegexLetters;
+                                break;
+                            case 13:
+                                classification = RegexSpecialCharacter;
+                                break;
                             case -1:
                                 classification = Classification.Other;
                                 break;
@@ -427,7 +484,11 @@ namespace Flex_Highlighter
                             default:
                                 break;
                         }
-
+                        if (token.TokenId == FlexTokenizer.Classes.RegexCharacterSet || token.TokenId == FlexTokenizer.Classes.RegexGroup)
+                        {
+                            AddRegexClassifications(token, list, currentText, span, startPosition, ClassificationRegistry);
+                            classification = null;
+                        }
                         var tokenSpan = new SnapshotSpan(span.Snapshot, startPosition, (endPosition - startPosition));
                         if (classification != null)
                             list.Add(new ClassificationSpan(tokenSpan, classification));
@@ -505,13 +566,6 @@ namespace Flex_Highlighter
                 } while (currentOffset < currentText.Length);
             }
             return list;
-        }
-
-        private MultiLineToken HandleFlexDefinitions(SnapshotSpan span, List<int[]> innerSections)
-        {
-
-            var mlt = GetLanguageSpan(new SnapshotSpan(span.Snapshot, new Span(0, span.Snapshot.Length)), innerSections, Languages.NoLanguage);
-            return mlt;
         }
 
         public MultiLineToken GetLanguageSpan(SnapshotSpan span, List<int[]> innerSections, Languages l = Languages.FlexDefinitions)
@@ -626,7 +680,7 @@ namespace Flex_Highlighter
                         }
 
                         var tokenSpan = new SnapshotSpan(span.Snapshot, startPosition, (endPosition - startPosition));
-                        if (token.TokenId >= FlexTokenizer.Classes.Other)
+                        if (classification != null)
                             list.Add(new ClassificationSpan(tokenSpan, classification));
 
                         if (multiLineToken && classification == null)
@@ -875,6 +929,180 @@ namespace Flex_Highlighter
                 } while (currentOffset < currentText.Length);
             }
             return list;
+        }
+
+        private void AddRegexClassifications(Token token, List<ClassificationSpan> list, string originalText, SnapshotSpan span, int offset, IClassificationTypeRegistryService registry)
+        {
+            String text = new string(originalText.ToCharArray(), token.StartIndex, token.Length);
+            int start = 0;
+            int index = start;
+            if (token.TokenId == FlexTokenizer.Classes.RegexGroup)
+            {
+                IClassificationType EscapedCharacterInGroup;
+                if (registry.GetClassificationType("Escaped Character in Regex Group") != null)
+                    EscapedCharacterInGroup = registry.GetClassificationType("Escaped Character in Regex Group");
+                else
+                    EscapedCharacterInGroup = registry.CreateClassificationType("Escaped Character in Regex Group", new IClassificationType[0]);
+                while (index < text.Length)
+                {
+                    MatchCollection matches;
+                    bool escapedCharacterFound = false;
+                    start = index;
+                    foreach (var escapeCharacter in FlexKeywords.AllEscapedCharacters)
+                    {
+                        matches = Regex.Matches(text, escapeCharacter);
+                        if (matches.Count != 0)
+                        {
+                            foreach (Match match in matches)
+                            {
+                                if (match.Index == index)
+                                {
+                                    list.Add(new ClassificationSpan(new SnapshotSpan(span.Snapshot, match.Index + offset, match.Length), EscapedCharacterInGroup));
+                                    index += match.Length;
+                                    escapedCharacterFound = true;
+                                }
+                            }
+                        }
+                    }
+
+                    if (escapedCharacterFound)
+                    {
+                        continue;
+                    }
+
+                    matches = Regex.Matches(text, @"\[[^\n\]]*(?<!\\)\]");
+                    if (matches.Count != 0)
+                    {
+                        foreach (Match match in matches)
+                        {
+                            if (match.Index == index)
+                            {
+                                token.StartIndex += index;
+                                token.Length = match.Length;
+                                token.TokenId = FlexTokenizer.Classes.RegexCharacterSet;
+                                AddRegexClassifications(token, list, originalText, span, offset + index, registry);
+                                index += match.Length;
+                                escapedCharacterFound = true;
+                            }
+                        }
+                    }
+
+                    if (escapedCharacterFound)
+                    {
+                        continue;
+                    }
+
+                    index = start;
+                    index = FlexTokenizer.AdvanceWhile(text, index, chr => chr == ' ');
+                    if (index > start)
+                    {
+                        list.Add(new ClassificationSpan(new SnapshotSpan(span.Snapshot, start + offset, index - start), RegexGroups));
+                        continue;
+                    }
+                    if (Char.IsDigit(text[index]))
+                    {
+                        index = FlexTokenizer.AdvanceWhile(text, index, chr => Char.IsDigit(chr));
+                    }
+                    else if (Char.IsLetter(text[index]))
+                    {
+                        index = FlexTokenizer.AdvanceWhile(text, index, chr => Char.IsLetter(chr));
+                    }
+                    else
+                    {
+                        index++;
+                    }
+                    string word = text.Substring(start, index - start);
+                    if (FlexTokenizer.IsDecimalInteger(word))
+                    {
+                        list.Add(new ClassificationSpan(new SnapshotSpan(span.Snapshot, start + offset, index - start), RegexGroups));
+                        continue;
+                    }
+                    else
+                    {
+                        list.Add(new ClassificationSpan(new SnapshotSpan(span.Snapshot, start + offset, index - start), RegexGroups));
+                        continue;
+                    }
+                }
+
+            }
+            else
+            {
+                IClassificationType EscapedCharacterInSet;
+                if (registry.GetClassificationType("Escaped Character in Character Set") != null)
+                    EscapedCharacterInSet = registry.GetClassificationType("Escaped Character in Character Set");
+                else
+                    EscapedCharacterInSet = registry.CreateClassificationType("Escaped Character in Character Set", new IClassificationType[0]);
+                IClassificationType RegexDigitsInSet;
+                if (registry.GetClassificationType("Regex Digits in Character Set") != null)
+                    RegexDigitsInSet = registry.GetClassificationType("Regex Digits in Character Set");
+                else
+                    RegexDigitsInSet = registry.CreateClassificationType("Regex Digits in Character Set", new IClassificationType[0]);
+                while (index < text.Length)
+                {
+                    bool escapedCharacterFound = false;
+                    start = index;
+                    foreach (var escapeCharacter in FlexKeywords.AllEscapedCharacters)
+                    {
+                        var matches = Regex.Matches(text, escapeCharacter);
+                        if (matches.Count != 0)
+                        {
+                            foreach (Match match in matches)
+                            {
+                                if (match.Index == index)
+                                {
+                                    list.Add(new ClassificationSpan(new SnapshotSpan(span.Snapshot, match.Index + offset, match.Length), EscapedCharacterInSet));
+                                    index += match.Length;
+                                    escapedCharacterFound = true;
+                                }
+                            }
+                        }
+                    }
+
+                    if (escapedCharacterFound)
+                    {
+                        continue;
+                    }
+
+                    index = start;
+                    index = FlexTokenizer.AdvanceWhile(text, index, chr => chr == ' ');
+                    if (index > start)
+                    {
+                        list.Add(new ClassificationSpan(new SnapshotSpan(span.Snapshot, start + offset, index - start), RegexCharacterSet));
+                        continue;
+                    }
+                    if (Char.IsDigit(text[index]))
+                    {
+                        index = FlexTokenizer.AdvanceWhile(text, index, chr => Char.IsDigit(chr));
+                    }
+                    else if (Char.IsLetter(text[index]))
+                    {
+                        index = FlexTokenizer.AdvanceWhile(text, index, chr => Char.IsLetter(chr));
+                    }
+                    else
+                    {
+                        index++;
+                    }
+                    string word = text.Substring(start, index - start);
+                    if (FlexTokenizer.IsDecimalInteger(word))
+                    {
+                        list.Add(new ClassificationSpan(new SnapshotSpan(span.Snapshot, start + offset, index - start), RegexDigitsInSet));
+                        continue;
+                    }
+                    else
+                    {
+                        list.Add(new ClassificationSpan(new SnapshotSpan(span.Snapshot, start + offset, index - start), RegexCharacterSet));
+                        continue;
+                    }
+                }
+
+            }
+        }
+
+        private MultiLineToken HandleFlexDefinitions(SnapshotSpan span, List<int[]> innerSections)
+        {
+
+            var mlt = GetLanguageSpan(new SnapshotSpan(span.Snapshot, new Span(0, span.Snapshot.Length)), innerSections, Languages.NoLanguage);
+            return mlt;
         }
         #endregion
     }
