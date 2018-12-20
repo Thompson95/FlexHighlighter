@@ -68,22 +68,33 @@ namespace Flex_Highlighter
                         }
                     }
                 }
-                var regex = new Regex(@"\([^\n\)]*(?<!\\)\)");
-                matches = regex.Matches(text, index);
-                if (matches.Count != 0)
+
+                if (text[index] == '(')
                 {
-                    foreach (Match match in matches)
+                    int numberOfBrackets = 1;
+                    index++;
+                    while (index < length && text[index] != '\n')
                     {
-                        if (match.Index == index)
+                        if (text[index] == '(' && index - 1 >= 0 && text[index - 1] != '\\')
                         {
-                            token.TokenId = Classes.RegexGroup;
-                            token.Length = match.Length;
-                            return token;
+                            numberOfBrackets++;
                         }
+                        else if (text[index] == ')' && index - 1 >= 0 && text[index - 1] != '\\')
+                        {
+                            numberOfBrackets--;
+                            if (numberOfBrackets >= 0)
+                            {
+                                token.Length = ++index - token.StartIndex;
+                                token.TokenId = Classes.RegexGroup;
+                                return token;
+                            }
+                        }
+                        index++;
                     }
+                    index = startIndex;
                 }
 
-                regex = new Regex(@"\[[^\n\]]*(?<!\\)\]");
+                var regex = new Regex(@"\[[^\n\]]*(?<!\\)\]");
                 matches = regex.Matches(text, index);
                 if (matches.Count != 0)
                 {

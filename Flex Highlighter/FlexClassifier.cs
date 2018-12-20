@@ -57,7 +57,6 @@ namespace Flex_Highlighter
         /// </summary>
         ///
         internal List<MultiLineToken> _multiLineTokens;
-        private readonly IClassificationType classificationType;
         internal readonly IClassificationType FlexDefinitionType;
         internal readonly IClassificationType RegexQuantifier;
         internal readonly IClassificationType RegexEscapedCharacter;
@@ -126,6 +125,7 @@ namespace Flex_Highlighter
         internal ITextBuffer Buffer { get; }
         internal IClassificationTypeRegistryService ClassificationRegistry { get; }
         internal IStandardClassificationService Classification { get; }
+
 
         #region IClassifier
         internal void Invalidate(SnapshotSpan span)
@@ -943,6 +943,16 @@ namespace Flex_Highlighter
                     EscapedCharacterInGroup = registry.GetClassificationType("Escaped Character in Regex Group");
                 else
                     EscapedCharacterInGroup = registry.CreateClassificationType("Escaped Character in Regex Group", new IClassificationType[0]);
+                IClassificationType SpecialCharacterInGroup;
+                if (registry.GetClassificationType("Regex Special Character in Group") != null)
+                    SpecialCharacterInGroup = registry.GetClassificationType("Regex Special Character in Group");
+                else
+                    SpecialCharacterInGroup = registry.CreateClassificationType("Regex Special Character in Group", new IClassificationType[0]);
+                IClassificationType FlexDefinitionInGroup;
+                if (registry.GetClassificationType("Flex Definition in Group") != null)
+                    FlexDefinitionInGroup = registry.GetClassificationType("Flex Definition in Group");
+                else
+                    FlexDefinitionInGroup = registry.CreateClassificationType("Flex Definition in Group", new IClassificationType[0]);
                 while (index < text.Length)
                 {
                     MatchCollection matches;
@@ -970,6 +980,44 @@ namespace Flex_Highlighter
                         continue;
                     }
 
+                    matches = Regex.Matches(text, @"{[0-9]+,*[0-9]*}");
+                    if (matches.Count != 0 && index > 0)
+                    {
+                        foreach (Match match in matches)
+                        {
+                            if (match.Index == index)
+                            {
+                                list.Add(new ClassificationSpan(new SnapshotSpan(span.Snapshot, match.Index + offset, match.Length), RegexQuantifier));
+                                index += match.Length;
+                                escapedCharacterFound = true;
+                            }
+                        }
+                    }
+
+                    if (escapedCharacterFound)
+                    {
+                        continue;
+                    }
+
+                    if (text[index] == '{')
+                    {
+                        list.Add(new ClassificationSpan(new SnapshotSpan(span.Snapshot, index + offset, 1), RegexGroups));
+                        index++;
+                        foreach (var definition in FlexTokenizer.FlexDefinitions)
+                        {
+                            foreach (Match match in new Regex($"{definition}}}").Matches(text))
+                            {
+                                if (match.Index == index)
+                                {
+                                    list.Add(new ClassificationSpan(new SnapshotSpan(span.Snapshot, match.Index + offset, definition.Length), FlexDefinitionInGroup));
+                                    index += definition.Length;
+                                    escapedCharacterFound = true;
+                                }
+                            }
+                        }
+                        continue;
+                    }
+
                     matches = Regex.Matches(text, @"\[[^\n\]]*(?<!\\)\]");
                     if (matches.Count != 0)
                     {
@@ -977,10 +1025,14 @@ namespace Flex_Highlighter
                         {
                             if (match.Index == index)
                             {
-                                token.StartIndex += index;
-                                token.Length = match.Length;
-                                token.TokenId = FlexTokenizer.Classes.RegexCharacterSet;
-                                AddRegexClassifications(token, list, originalText, span, offset + index, registry);
+                                var auxToken = new Token()
+                                {
+                                    Length = match.Length,
+                                    StartIndex = token.StartIndex + index,
+                                    State = token.State,
+                                    TokenId = FlexTokenizer.Classes.RegexCharacterSet
+                                };
+                                AddRegexClassifications(auxToken, list, originalText, span, offset + index, registry);
                                 index += match.Length;
                                 escapedCharacterFound = true;
                             }
@@ -1019,7 +1071,7 @@ namespace Flex_Highlighter
                     }
                     else
                     {
-                        list.Add(new ClassificationSpan(new SnapshotSpan(span.Snapshot, start + offset, index - start), RegexGroups));
+                        list.Add(new ClassificationSpan(new SnapshotSpan(span.Snapshot, start + offset, index - start), FlexKeywords.SpecialCharactersContains(word) ? SpecialCharacterInGroup : RegexGroups));
                         continue;
                     }
                 }

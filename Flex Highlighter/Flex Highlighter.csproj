@@ -47,6 +47,7 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="DefaultColors.cs" />
     <Compile Include="Flex.cs" />
     <Compile Include="FlexClassifier.cs" />
     <Compile Include="FlexClassifierClassificationDefinition.cs" />
